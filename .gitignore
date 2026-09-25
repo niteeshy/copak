@@ -1,0 +1,31 @@
+# Xcode and Swift Package Manager
+.build/
+.swiftpm/
+DerivedData/
+*.app/
+*.dSYM/
+build/
+*.ipa
+*.pkg
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Secrets & Environment configurations
+.env
+.env.*
+*.pem
+*.key
+id_rsa
+id_ed25519
+*.p8
+*.p12
+
+# Xcode user preferences
+xcuserdata/
+*.xcworkspace/xcuserdata/
