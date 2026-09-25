@@ -24,13 +24,7 @@ public struct ProjectPickerView: View {
                             Image(nsImage: nsImg)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 64, height: 64)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
-                                )
-                                .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
+                                .frame(width: 72, height: 72)
                         } else {
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 .fill(Color.white.opacity(0.06))

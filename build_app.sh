@@ -15,26 +15,9 @@ else
     exit 1
 fi
 
-echo "Generating and preparing AppIcon..."
-ICON_SRC="/Users/niteesh/Downloads/Copak.png"
-if [ ! -f "$ICON_SRC" ] && [ -f "Resources/Copak.png" ]; then
-    ICON_SRC="Resources/Copak.png"
-fi
-
-if [ -f "$ICON_SRC" ]; then
-    mkdir -p /tmp/CopakIcon.iconset
-    sips -z 16 16     "$ICON_SRC" --out /tmp/CopakIcon.iconset/icon_16x16.png > /dev/null 2>&1
-    sips -z 32 32     "$ICON_SRC" --out /tmp/CopakIcon.iconset/icon_16x16@2x.png > /dev/null 2>&1
-    sips -z 32 32     "$ICON_SRC" --out /tmp/CopakIcon.iconset/icon_32x32.png > /dev/null 2>&1
-    sips -z 64 64     "$ICON_SRC" --out /tmp/CopakIcon.iconset/icon_32x32@2x.png > /dev/null 2>&1
-    sips -z 128 128   "$ICON_SRC" --out /tmp/CopakIcon.iconset/icon_128x128.png > /dev/null 2>&1
-    sips -z 256 256   "$ICON_SRC" --out /tmp/CopakIcon.iconset/icon_128x128@2x.png > /dev/null 2>&1
-    sips -z 256 256   "$ICON_SRC" --out /tmp/CopakIcon.iconset/icon_256x256.png > /dev/null 2>&1
-    sips -z 512 512   "$ICON_SRC" --out /tmp/CopakIcon.iconset/icon_256x256@2x.png > /dev/null 2>&1
-    sips -z 512 512   "$ICON_SRC" --out /tmp/CopakIcon.iconset/icon_512x512.png > /dev/null 2>&1
-    sips -z 1024 1024 "$ICON_SRC" --out /tmp/CopakIcon.iconset/icon_512x512@2x.png > /dev/null 2>&1
-    iconutil -c icns /tmp/CopakIcon.iconset -o Resources/AppIcon.icns
-    rm -rf /tmp/CopakIcon.iconset
+echo "Generating and preparing standardized macOS AppIcon..."
+if [ -f "scripts/generate_app_icon.py" ]; then
+    /usr/bin/python3 scripts/generate_app_icon.py 2>/dev/null || python3 scripts/generate_app_icon.py 2>/dev/null || true
 fi
 
 echo "Creating Copak.app bundle..."
