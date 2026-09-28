@@ -221,9 +221,6 @@ public struct ProjectPickerView: View {
            let img = NSImage(contentsOf: iconURL) {
             return img
         }
-        if let img = NSImage(contentsOfFile: "/Users/niteesh/Downloads/Copak.png") {
-            return img
-        }
         return NSApp.applicationIconImage
     }
 }

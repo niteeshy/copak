@@ -83,7 +83,7 @@ Copak is intentionally **not** autonomous agent memory. Active session momentum 
 - **Recent Work**: Fine-grained notes on changes from the latest session.
 - **Important Files**: Pinned file paths with developer-annotated rationale.
 - **Session Notes**: Freeform handover notes, warnings, or environment tips.
-- **Atomic Local Persistence**: Saved atomically to `~/.copak/sessions/<hash>.json` with automatic sanitization on read and write.
+- **Atomic Local Persistence**: Saved atomically to `~/Library/Application Support/Copak/sessions/<base64>.json` with automatic sanitization on read and write.
 
 ### 2. Git & Non-Git Project Support
 - **Git Repositories**: Inspects active branch, HEAD commit hash, modified, staged, and untracked files, plus staged/unstaged diff statistics.
@@ -175,7 +175,7 @@ swift run Copak
 
 ### Running Tests
 
-Run the full automated test suite (all 45 unit, integration, and secret sanitization tests):
+Run the automated test suite (45+ unit, integration, and secret sanitization tests):
 
 ```bash
 swift test
@@ -187,7 +187,7 @@ swift test
 
 - **100% Local**: Copak performs all repository analysis, secret filtering, and packet generation locally on your machine.
 - **Zero Telemetry**: No network analytics, tracking, or remote API calls.
-- **Local State Location**: Developer session momentum is stored in `~/.copak/sessions/`.
+- **Local State Location**: Developer session momentum is stored locally in `~/Library/Application Support/Copak/sessions/` with safe base64-encoded directory keys.
 
 ---
 
