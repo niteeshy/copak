@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/niteeshy/copak/releases/download/v1.0.0/Copak.zip"><img src="https://img.shields.io/badge/Download-Copak%20for%20macOS-17181b?style=for-the-badge&logo=apple&logoColor=white" alt="Download Copak for macOS" /></a>
-  <a href="https://github.com/niteeshy/copak/releases/tag/v1.0.0"><img src="https://img.shields.io/github/v/release/niteeshy/copak?style=for-the-badge&color=242529&labelColor=17181b" alt="Latest Release" /></a>
+  <a href="https://github.com/niteeshy/copak/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/Release-v1.0.0-242529?style=for-the-badge&labelColor=17181b" alt="Latest Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-242529?style=for-the-badge" alt="License" /></a>
 </p>
 
