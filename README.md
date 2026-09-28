@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/niteeshy/copak/releases/latest/download/Copak.zip"><img src="https://img.shields.io/badge/Download-Copak%20for%20macOS-17181b?style=for-the-badge&logo=apple&logoColor=white" alt="Download Copak for macOS" /></a>
-  <a href="https://github.com/niteeshy/copak/releases"><img src="https://img.shields.io/github/v/release/niteeshy/copak?style=for-the-badge&color=242529&labelColor=17181b" alt="Latest Release" /></a>
+  <a href="https://github.com/niteeshy/copak/releases/download/v1.0.0/Copak.zip"><img src="https://img.shields.io/badge/Download-Copak%20for%20macOS-17181b?style=for-the-badge&logo=apple&logoColor=white" alt="Download Copak for macOS" /></a>
+  <a href="https://github.com/niteeshy/copak/releases/tag/v1.0.0"><img src="https://img.shields.io/github/v/release/niteeshy/copak?style=for-the-badge&color=242529&labelColor=17181b" alt="Latest Release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-242529?style=for-the-badge" alt="License" /></a>
 </p>
 
@@ -25,9 +25,9 @@ Copak is intentionally **not** autonomous agent memory. Active session momentum 
 
 ## ⚡️ Quick Download (macOS)
 
-[![Download Latest Release](https://img.shields.io/badge/Download-Copak%20for%20macOS-17181b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/niteeshy/copak/releases/latest/download/Copak.zip)
+[![Download Copak v1.0.0](https://img.shields.io/badge/Download-Copak%20v1.0.0%20(macOS)-17181b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/niteeshy/copak/releases/download/v1.0.0/Copak.zip)
 
-1. **[Download `Copak.zip`](https://github.com/niteeshy/copak/releases/latest/download/Copak.zip)** (or browse all [Releases](https://github.com/niteeshy/copak/releases)).
+1. **[Download `Copak.zip` (v1.0.0)](https://github.com/niteeshy/copak/releases/download/v1.0.0/Copak.zip)** (or view [Release v1.0.0](https://github.com/niteeshy/copak/releases/tag/v1.0.0)).
 2. Unzip and drag `Copak.app` into `/Applications`.
 3. Open `Copak.app` and press `⌘O` to load any Git repository or project folder.
 
