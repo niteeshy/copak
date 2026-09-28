@@ -7,6 +7,8 @@ DerivedData/
 build/
 *.ipa
 *.pkg
+*.zip
+*.dmg
 
 # macOS system files
 .DS_Store

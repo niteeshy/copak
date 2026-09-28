@@ -8,6 +8,21 @@ Copak is intentionally **not** autonomous agent memory. Active session momentum 
 
 ---
 
+## ⚡️ Quick Download (macOS)
+
+[![Download Latest Release](https://img.shields.io/badge/Download-Copak%20for%20macOS-17181b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/niteeshy/copak/releases/latest/download/Copak.zip)
+
+1. **[Download `Copak.zip`](https://github.com/niteeshy/copak/releases/latest/download/Copak.zip)** (or browse all [Releases](https://github.com/niteeshy/copak/releases)).
+2. Unzip and drag `Copak.app` into `/Applications`.
+3. Open `Copak.app` and press `⌘O` to load any Git repository or project folder.
+
+> **Tip for first launch:** Since Copak is an open-source indie app, if macOS displays an unidentified developer prompt on first launch, simply right-click `Copak.app` and select **Open**, or run:
+> ```bash
+> xattr -cr /Applications/Copak.app
+> ```
+
+---
+
 ## How It Works
 
 ```

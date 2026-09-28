@@ -1,0 +1,40 @@
+name: Release Copak
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Release macOS App
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "5.10"
+
+      - name: Build Universal App
+        run: |
+          chmod +x build_app.sh
+          ./build_app.sh --universal
+
+      - name: Package Zip Archive
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent Copak.app Copak.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Copak.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false

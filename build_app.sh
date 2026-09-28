@@ -2,12 +2,16 @@
 set -e
 
 UNIVERSAL=false
+CREATE_ZIP=false
 SOURCE_ICON=""
 
 for arg in "$@"; do
     case "$arg" in
         --universal)
             UNIVERSAL=true
+            ;;
+        --zip)
+            CREATE_ZIP=true
             ;;
         --source=*)
             SOURCE_ICON="${arg#*=}"
@@ -99,3 +103,10 @@ touch Copak.app
 
 echo "✓ Copak.app created successfully with updated icon and metadata!"
 echo "You can open it anytime with: open Copak.app"
+
+if [ "$CREATE_ZIP" = true ]; then
+    echo "Creating Copak.zip distribution archive..."
+    rm -f Copak.zip
+    ditto -c -k --sequesterRsrc --keepParent Copak.app Copak.zip
+    echo "✓ Copak.zip created successfully!"
+fi
