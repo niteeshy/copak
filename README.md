@@ -1,6 +1,21 @@
-# Copak
+<p align="center">
+  <img src="Resources/Copak.png" alt="Copak App Icon" width="128" height="128" />
+</p>
 
-> Deterministic handoffs between coding agents and developers.
+<h1 align="center">Copak</h1>
+
+<p align="center">
+  <strong>Deterministic handoffs between coding agents and developers.</strong><br>
+  <em>Carrying active session momentum and sanitized repo context into Claude Code, Cursor, and web LLMs.</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/niteeshy/copak/releases/latest/download/Copak.zip"><img src="https://img.shields.io/badge/Download-Copak%20for%20macOS-17181b?style=for-the-badge&logo=apple&logoColor=white" alt="Download Copak for macOS" /></a>
+  <a href="https://github.com/niteeshy/copak/releases"><img src="https://img.shields.io/github/v/release/niteeshy/copak?style=for-the-badge&color=242529&labelColor=17181b" alt="Latest Release" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-242529?style=for-the-badge" alt="License" /></a>
+</p>
+
+---
 
 Copak helps developers carry active coding work between AI-agent sessions by combining developer-maintained context with a current, sanitised project snapshot. It is designed to eliminate context drift and tedious prompt re-explanation when collaborating with AI coding agents (Claude Code, Cursor, Codex, Windsurf, Copilot, etc.).
 
