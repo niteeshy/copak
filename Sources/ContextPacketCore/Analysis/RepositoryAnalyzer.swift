@@ -22,36 +22,86 @@ public final class RepositoryAnalyzer: Sendable {
     }
 
     public func analyze(repositoryURL: URL) async throws -> RepositorySnapshot {
-        // 1. Resolve root Git directory
-        let rootURL = try await gitClient.resolveRepositoryRoot(at: repositoryURL)
-        let repoName = rootURL.lastPathComponent
-
-        // 2. Fetch Git state asynchronously
-        async let branchTask = gitClient.getCurrentBranch(at: rootURL)
-        async let remoteTask = gitClient.getRemoteURL(at: rootURL)
-        async let headHashTask = gitClient.getHeadCommitHash(at: rootURL)
-        async let commitsTask = gitClient.getRecentCommits(at: rootURL, count: 10)
-        async let diffTask = gitClient.getDiffSummary(at: rootURL)
-
-        var statusError: String? = nil
-        let status: (modified: [ChangedFile], staged: [ChangedFile], untracked: [ChangedFile])
-        do {
-            status = try await gitClient.getStatus(at: rootURL)
-        } catch {
-            statusError = error.localizedDescription
-            status = (modified: [], staged: [], untracked: [])
+        // 0. Verify directory exists
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: repositoryURL.path, isDirectory: &isDir), isDir.boolValue else {
+            throw CocoaError(.fileNoSuchFile)
         }
 
-        let branch = await branchTask
-        let remoteURL = await remoteTask
-        let headHash = await headHashTask
-        let commits = await commitsTask
-        let diffSummary = await diffTask
+        // 1. Resolve root Git directory or fallback to local directory
+        let isGitRepo: Bool
+        let rootURL: URL
+        do {
+            rootURL = try await gitClient.resolveRepositoryRoot(at: repositoryURL)
+            isGitRepo = true
+        } catch {
+            rootURL = repositoryURL
+            isGitRepo = false
+        }
+        let repoName = rootURL.lastPathComponent
 
-        // 3. Filter secrets from file status
-        let safeModified = status.modified.filter { !SecretFilter.isSecretFile(path: $0.path) }
-        let safeStaged = status.staged.filter { !SecretFilter.isSecretFile(path: $0.path) }
-        let safeUntracked = status.untracked.filter { !SecretFilter.isSecretFile(path: $0.path) }
+        // 2. Fetch Git state asynchronously if inside Git repository
+        let branch: String?
+        let remoteURL: String?
+        let headHash: String?
+        let commits: [Commit]
+        let diffSummary: DiffSummary?
+        var statusError: String? = nil
+        let safeModified: [ChangedFile]
+        let safeStaged: [ChangedFile]
+        let safeUntracked: [ChangedFile]
+        let hiddenSensitiveCount: Int
+        let hasOmittedSensitive: Bool
+        let isGitDirty: Bool
+
+        if isGitRepo {
+            async let branchTask = gitClient.getCurrentBranch(at: rootURL)
+            async let remoteTask = gitClient.getRemoteURL(at: rootURL)
+            async let headHashTask = gitClient.getHeadCommitHash(at: rootURL)
+            async let commitsTask = gitClient.getRecentCommits(at: rootURL, count: 10)
+            async let diffTask = gitClient.getDiffSummary(at: rootURL)
+
+            let status: (modified: [ChangedFile], staged: [ChangedFile], untracked: [ChangedFile])
+            do {
+                status = try await gitClient.getStatus(at: rootURL)
+            } catch {
+                statusError = error.localizedDescription
+                status = (modified: [], staged: [], untracked: [])
+            }
+
+            branch = await branchTask
+            remoteURL = await remoteTask
+            headHash = await headHashTask
+            commits = await commitsTask
+            diffSummary = await diffTask
+
+            // 3. Filter secrets from file status and track hidden sensitive changes
+            let allModified = status.modified
+            let allStaged = status.staged
+            let allUntracked = status.untracked
+
+            safeModified = allModified.filter { !SecretFilter.isSecretFile(path: $0.path) }
+            safeStaged = allStaged.filter { !SecretFilter.isSecretFile(path: $0.path) }
+            safeUntracked = allUntracked.filter { !SecretFilter.isSecretFile(path: $0.path) }
+
+            let totalGitChanges = allModified.count + allStaged.count + allUntracked.count
+            let visibleSafeChanges = safeModified.count + safeStaged.count + safeUntracked.count
+            hiddenSensitiveCount = totalGitChanges - visibleSafeChanges
+            hasOmittedSensitive = hiddenSensitiveCount > 0
+            isGitDirty = totalGitChanges > 0
+        } else {
+            branch = "non-git"
+            remoteURL = nil
+            headHash = nil
+            commits = []
+            diffSummary = nil
+            safeModified = []
+            safeStaged = []
+            safeUntracked = []
+            hiddenSensitiveCount = 0
+            hasOmittedSensitive = false
+            isGitDirty = false
+        }
 
         // 4. Inspect README (sanitized)
         let readmeContent = readReadme(at: rootURL).map { SecretFilter.sanitizeText($0) }
@@ -89,7 +139,11 @@ public final class RepositoryAnalyzer: Sendable {
             todos: todos,
             diffSummary: diffSummary,
             refreshedAt: Date(),
-            refreshError: statusError
+            refreshError: statusError,
+            isGitDirty: isGitDirty,
+            hiddenSensitiveChangesCount: hiddenSensitiveCount,
+            hasOmittedSensitiveChanges: hasOmittedSensitive,
+            isGitRepository: isGitRepo
         )
     }
 

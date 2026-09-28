@@ -153,4 +153,24 @@ final class InstructionIngestionTests: XCTestCase {
         XCTAssertTrue(compOutput.contains("```"))
         XCTAssertTrue(compOutput.contains("Line of important instruction context."))
     }
+
+    func testInstructionFileDetectorFindsWindsurfAndClineRules() throws {
+        let windsurf = tempDir.appendingPathComponent(".windsurfrules")
+        try "Windsurf rules content".write(to: windsurf, atomically: true, encoding: .utf8)
+
+        let cline = tempDir.appendingPathComponent(".clinerules")
+        try "Cline rules content".write(to: cline, atomically: true, encoding: .utf8)
+
+        let detected = InstructionFileDetector.detect(at: tempDir)
+
+        let windsurfFound = detected.first { $0.path == ".windsurfrules" }
+        XCTAssertNotNil(windsurfFound)
+        XCTAssertEqual(windsurfFound?.scope, "windsurf")
+        XCTAssertEqual(windsurfFound?.content, "Windsurf rules content")
+
+        let clineFound = detected.first { $0.path == ".clinerules" }
+        XCTAssertNotNil(clineFound)
+        XCTAssertEqual(clineFound?.scope, "cline")
+        XCTAssertEqual(clineFound?.content, "Cline rules content")
+    }
 }

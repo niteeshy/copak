@@ -1,15 +1,24 @@
 import os
+import sys
 import shutil
 import subprocess
 from PIL import Image, ImageFilter
 
-def generate_icons():
-    src_path = "Resources/Copak_raw.png"
-    if not os.path.exists(src_path):
-        src_path = "/Users/niteesh/Downloads/Copak.png"
-    if not os.path.exists(src_path):
+def generate_icons(custom_source=None):
+    src_path = None
+    if custom_source and os.path.exists(custom_source):
+        src_path = custom_source
+    elif os.path.exists("Resources/Copak_raw.png"):
+        src_path = "Resources/Copak_raw.png"
+    elif os.path.exists("Resources/Copak.png"):
         src_path = "Resources/Copak.png"
-    
+    elif os.path.exists("Sources/ContextPacket/Resources/Copak.png"):
+        src_path = "Sources/ContextPacket/Resources/Copak.png"
+
+    if not src_path or not os.path.exists(src_path):
+        print("No valid source icon found in repository. Skipping generation.")
+        return
+
     print(f"Loading source icon from: {src_path}")
     orig = Image.open(src_path).convert('RGBA')
 
@@ -84,4 +93,10 @@ def generate_icons():
     print("✓ Successfully generated Resources/AppIcon.icns and updated Sources/ContextPacket/Resources/AppIcon.icns")
 
 if __name__ == "__main__":
-    generate_icons()
+    custom_src = None
+    for i, arg in enumerate(sys.argv):
+        if arg == "--source" and i + 1 < len(sys.argv):
+            custom_src = sys.argv[i + 1]
+        elif arg.endswith(".png") and os.path.exists(arg):
+            custom_src = arg
+    generate_icons(custom_src)

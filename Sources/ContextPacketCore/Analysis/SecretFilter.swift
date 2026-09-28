@@ -16,14 +16,26 @@ public struct SecretFilter: Sendable {
         ".pkcs12",
         ".secret",
         "secrets.",
+        "secret.",
+        "-secret.",
+        "_secret.",
         "service-account.",
         "client_secret."
     ]
 
-    // Sensitive assignment regex: matches key = "secret" or key: 'secret'
-    private static let assignmentRegex: NSRegularExpression? = {
+    // Quoted sensitive assignment regex: matches key = "secret with spaces" or 'secret with spaces'
+    // Handles quoted keys (JSON) or bare keys, e.g. PASSWORD="correct horse battery staple"
+    private static let quotedAssignmentRegex: NSRegularExpression? = {
         try? NSRegularExpression(
-            pattern: "(?i)\\b([a-z0-9_]*(?:api_?key|secret|password|passwd|pwd|token|credentials?|private_?key)[a-z0-9_]*)(\\s*[:=]\\s*)([\"']?)([^'\"\\r\\n\\s]+)([\"']?)",
+            pattern: "(?i)([\"']?)([a-z0-9_]*(?:api_?key|secret|password|passwd|pwd|token|credentials?|private_?key)[a-z0-9_]*)\\1(\\s*[:=]\\s*)([\"'])([^\"'\\r\\n]*)\\4",
+            options: []
+        )
+    }()
+
+    // Unquoted sensitive assignment regex: matches key = secret_value
+    private static let unquotedAssignmentRegex: NSRegularExpression? = {
+        try? NSRegularExpression(
+            pattern: "(?i)([\"']?)([a-z0-9_]*(?:api_?key|secret|password|passwd|pwd|token|credentials?|private_?key)[a-z0-9_]*)\\1(\\s*[:=]\\s*)([^\r\n\\s\"';,]+)",
             options: []
         )
     }()
@@ -39,8 +51,8 @@ public struct SecretFilter: Sendable {
     // PEM / Private Key block regex
     private static let privateKeyBlockRegex: NSRegularExpression? = {
         try? NSRegularExpression(
-            pattern: "-----BEGIN (?:[A-Z0-9 ]+)?PRIVATE KEY-----[\\s\\S]*?-----END (?:[A-Z0-9 ]+)?PRIVATE KEY-----",
-            options: []
+            pattern: "-----BEGIN (?:[A-Z0-9_-]+ )?PRIVATE KEY-----[\\s\\S]*?-----END (?:[A-Z0-9_-]+ )?PRIVATE KEY-----",
+            options: [.caseInsensitive]
         )
     }()
 
@@ -60,6 +72,16 @@ public struct SecretFilter: Sendable {
 
     /// Returns true if the file or path is considered sensitive and must be excluded.
     public static func isSecretFile(path: String) -> Bool {
+        // If this represents a git rename (e.g., "old.txt -> .env"), check both parts
+        if path.contains(" -> ") {
+            let parts = path.components(separatedBy: " -> ")
+            for part in parts {
+                if isSecretFile(path: part.trimmingCharacters(in: .whitespaces)) {
+                    return true
+                }
+            }
+        }
+
         let filename = (path as NSString).lastPathComponent.lowercased()
         let lowercasedPath = path.lowercased()
 
@@ -80,7 +102,7 @@ public struct SecretFilter: Sendable {
     public static func sanitizeText(_ text: String) -> String {
         var result = text
 
-        // 1. Redact Private Key blocks
+        // 1. Redact Private Key blocks (multiline)
         if let regex = privateKeyBlockRegex {
             let range = NSRange(result.startIndex..<result.endIndex, in: result)
             result = regex.stringByReplacingMatches(
@@ -102,18 +124,29 @@ public struct SecretFilter: Sendable {
             )
         }
 
-        // 3. Redact sensitive variable assignments (preserving variable name)
-        if let regex = assignmentRegex {
+        // 3. Redact quoted sensitive variable assignments (including spaces inside quotes)
+        if let regex = quotedAssignmentRegex {
             let range = NSRange(result.startIndex..<result.endIndex, in: result)
             result = regex.stringByReplacingMatches(
                 in: result,
                 options: [],
                 range: range,
-                withTemplate: "$1$2$3[REDACTED_SECRET]$5"
+                withTemplate: "$1$2$1$3$4[REDACTED_SECRET]$4"
             )
         }
 
-        // 4. Redact known token signatures
+        // 4. Redact unquoted sensitive variable assignments
+        if let regex = unquotedAssignmentRegex {
+            let range = NSRange(result.startIndex..<result.endIndex, in: result)
+            result = regex.stringByReplacingMatches(
+                in: result,
+                options: [],
+                range: range,
+                withTemplate: "$1$2$1$3[REDACTED_SECRET]"
+            )
+        }
+
+        // 5. Redact known token signatures
         for item in tokenPatterns {
             guard let regex = item.regex else { continue }
             let range = NSRange(result.startIndex..<result.endIndex, in: result)
@@ -150,6 +183,25 @@ public struct SecretFilter: Sendable {
                 }
             }
 
+            if !isSecret {
+                // Check rename from / rename to headers
+                for line in section.components(separatedBy: .newlines) {
+                    if line.hasPrefix("rename from ") {
+                        let path = String(line.dropFirst("rename from ".count)).trimmingCharacters(in: .whitespaces)
+                        if isSecretFile(path: path) {
+                            isSecret = true
+                            break
+                        }
+                    } else if line.hasPrefix("rename to ") {
+                        let path = String(line.dropFirst("rename to ".count)).trimmingCharacters(in: .whitespaces)
+                        if isSecretFile(path: path) {
+                            isSecret = true
+                            break
+                        }
+                    }
+                }
+            }
+
             if isSecret {
                 sanitizedSections.append("[EXCLUDED: Secret file diff omitted for safety]")
             } else {
@@ -161,6 +213,7 @@ public struct SecretFilter: Sendable {
     }
 
     /// Central pipeline: sanitizes an entire Handoff model before export or preview.
+    /// Sanitizes every textual field and preserves all DiffSummary metadata.
     public static func sanitizeHandoff(_ handoff: Handoff) -> Handoff {
         var copy = handoff
         copy.currentGoal = sanitizeText(copy.currentGoal)
@@ -197,7 +250,7 @@ public struct SecretFilter: Sendable {
 
         copy.todos = copy.todos.map {
             TodoItem(
-                file: $0.file,
+                file: sanitizeText($0.file),
                 line: $0.line,
                 kind: $0.kind,
                 comment: sanitizeText($0.comment),
@@ -211,8 +264,8 @@ public struct SecretFilter: Sendable {
 
         // Sanitize project metadata
         copy.project = ProjectContext(
-            name: copy.project.name,
-            repositoryPath: copy.project.repositoryPath,
+            name: sanitizeText(copy.project.name),
+            repositoryPath: sanitizeText(copy.project.repositoryPath),
             ecosystem: copy.project.ecosystem,
             remoteURL: copy.project.remoteURL.map { sanitizeText($0) }
         )
@@ -220,41 +273,50 @@ public struct SecretFilter: Sendable {
         // Filter and sanitize important files
         copy.importantFiles = copy.importantFiles
             .filter { !isSecretFile(path: $0.path) }
-            .map { ImportantFile(path: $0.path, reason: sanitizeText($0.reason), isPinned: $0.isPinned) }
+            .map { ImportantFile(path: sanitizeText($0.path), reason: sanitizeText($0.reason), isPinned: $0.isPinned) }
 
         // Sanitize instruction files
         copy.detectedInstructions = copy.detectedInstructions.map {
             InstructionFile(
-                path: $0.path,
-                filename: $0.filename,
-                scope: $0.scope,
+                path: sanitizeText($0.path),
+                filename: sanitizeText($0.filename),
+                scope: sanitizeText($0.scope),
                 content: sanitizeText($0.content),
                 isTruncated: $0.isTruncated,
                 snippet: $0.snippet.map { sanitizeText($0) }
             )
         }
 
-        // Filter state files and sanitize diff summary
-        let filteredModified = filterPaths(copy.currentState.modifiedFiles)
-        let filteredStaged = filterPaths(copy.currentState.stagedFiles)
-        let filteredUntracked = filterPaths(copy.currentState.untrackedFiles)
+        // Filter state files and sanitize diff summary while preserving all metadata
+        let filteredModified = filterPaths(copy.currentState.modifiedFiles).map { sanitizeText($0) }
+        let filteredStaged = filterPaths(copy.currentState.stagedFiles).map { sanitizeText($0) }
+        let filteredUntracked = filterPaths(copy.currentState.untrackedFiles).map { sanitizeText($0) }
 
         var sanitizedDiff: DiffSummary? = nil
         if let diff = copy.currentState.diffSummary {
-            let filteredFiles = diff.files.filter { !isSecretFile(path: $0.path) }
+            let filteredFiles = diff.files
+                .filter { !isSecretFile(path: $0.path) }
+                .map { FileDelta(path: sanitizeText($0.path), additions: $0.additions, deletions: $0.deletions, isStaged: $0.isStaged) }
             let sanitizedSnippet = diff.rawDiffSnippet.map { sanitizeDiff($0) }
             sanitizedDiff = DiffSummary(
                 filesChanged: filteredFiles.count,
                 additions: diff.additions,
                 deletions: diff.deletions,
+                stagedAdditions: diff.stagedAdditions,
+                stagedDeletions: diff.stagedDeletions,
+                stagedFilesCount: diff.stagedFilesCount,
+                unstagedAdditions: diff.unstagedAdditions,
+                unstagedDeletions: diff.unstagedDeletions,
+                unstagedFilesCount: diff.unstagedFilesCount,
                 files: filteredFiles,
-                rawDiffSnippet: sanitizedSnippet
+                rawDiffSnippet: sanitizedSnippet,
+                isTruncated: diff.isTruncated
             )
         }
 
         copy.currentState = CanonicalRepositoryState(
-            branch: copy.currentState.branch,
-            headCommit: copy.currentState.headCommit,
+            branch: sanitizeText(copy.currentState.branch),
+            headCommit: copy.currentState.headCommit.map { sanitizeText($0) },
             isClean: copy.currentState.isClean,
             modifiedFiles: filteredModified,
             stagedFiles: filteredStaged,
@@ -262,7 +324,12 @@ public struct SecretFilter: Sendable {
             diffSummary: sanitizedDiff,
             refreshedAt: copy.currentState.refreshedAt,
             isStale: copy.currentState.isStale,
-            stalenessReason: copy.currentState.stalenessReason.map { sanitizeText($0) }
+            stalenessReason: copy.currentState.stalenessReason.map { sanitizeText($0) },
+            hasOmittedSensitiveChanges: copy.currentState.hasOmittedSensitiveChanges,
+            hiddenSensitiveChangesCount: copy.currentState.hiddenSensitiveChangesCount,
+            isGitDirty: copy.currentState.isGitDirty,
+            isEditedDraft: copy.currentState.isEditedDraft,
+            isGitRepository: copy.currentState.isGitRepository
         )
 
         return copy
@@ -290,7 +357,7 @@ public struct SecretFilter: Sendable {
         if let notes = copy.notes {
             copy.notes = sanitizeText(notes)
         }
-        copy.pinnedFiles = filterPaths(copy.pinnedFiles)
+        copy.pinnedFiles = filterPaths(copy.pinnedFiles).map { sanitizeText($0) }
         return copy
     }
 }

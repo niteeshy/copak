@@ -29,6 +29,8 @@ public final class AppState: ObservableObject {
     @Published public var selectedProvider: String = "claude"
 
     @Published public var isDraftModified: Bool = false
+    @Published public var draftBaseSnapshotTimestamp: Date?
+    @Published public var editedDraftWarning: String?
     @Published public var lastRefreshedAt: Date?
     @Published public var refreshErrorMessage: String?
     @Published public var showStaleExportAlert: Bool = false
@@ -39,6 +41,7 @@ public final class AppState: ObservableObject {
     private let analyzer = RepositoryAnalyzer()
     private let recentStore = RecentProjectsStore.shared
     private let sessionStore = ProjectSessionStore.shared
+    private let exportService = ContextExportService.shared
 
     public init() {
         loadRecentProjects()
@@ -80,6 +83,7 @@ public final class AppState: ObservableObject {
                 }
             }
             self.importantFiles = files
+            regeneratePreview()
 
             self.currentScreen = .overview
             self.isLoading = false
@@ -135,6 +139,9 @@ public final class AppState: ObservableObject {
         do {
             let saved = try sessionStore.saveSession(sess)
             self.session = saved
+            if !isDraftModified {
+                regeneratePreview()
+            }
         } catch {
             self.errorMessage = "Failed to persist session: \(error.localizedDescription)"
         }
@@ -250,7 +257,9 @@ public final class AppState: ObservableObject {
         let handoff = buildCanonicalHandoff(from: snap)
         let generated = renderMarkdown(for: handoff, provider: selectedProvider, mode: budgetMode)
         self.generatedMarkdown = SecretFilter.sanitizeText(generated)
+        self.draftBaseSnapshotTimestamp = snap.refreshedAt
         self.isDraftModified = false
+        self.editedDraftWarning = nil
         self.currentScreen = .preview
     }
 
@@ -288,7 +297,9 @@ public final class AppState: ObservableObject {
         guard let snap = snapshot else { return }
         let handoff = buildCanonicalHandoff(from: snap)
         self.generatedMarkdown = SecretFilter.sanitizeText(renderMarkdown(for: handoff, provider: selectedProvider, mode: budgetMode))
+        self.draftBaseSnapshotTimestamp = snap.refreshedAt
         self.isDraftModified = false
+        self.editedDraftWarning = nil
     }
 
     public func updatePreviewForCurrentSettings() {
@@ -296,59 +307,18 @@ public final class AppState: ObservableObject {
     }
 
     private func buildCanonicalHandoff(from snap: RepositorySnapshot) -> Handoff {
-        let project = ProjectContext(
-            name: snap.name,
-            repositoryPath: snap.path.path,
-            ecosystem: snap.projectMetadata.ecosystem,
-            remoteURL: snap.remoteURL
-        )
-
         let isStale = snap.refreshError != nil
-        let state = CanonicalRepositoryState(
-            branch: snap.branch ?? "main",
-            headCommit: snap.headCommitHash,
-            isClean: snap.isClean,
-            modifiedFiles: snap.modifiedFiles.map(\.path),
-            stagedFiles: snap.stagedFiles.map(\.path),
-            untrackedFiles: snap.untrackedFiles.map(\.path),
-            diffSummary: snap.diffSummary,
-            refreshedAt: snap.refreshedAt,
+        return exportService.buildHandoff(
+            from: snap,
+            session: session,
+            importantFiles: importantFiles,
             isStale: isStale,
             stalenessReason: snap.refreshError
-        )
-
-        return Handoff(
-            version: "1.0",
-            project: project,
-            currentGoal: session?.currentGoal ?? "",
-            completedWork: session?.completedWork ?? [],
-            currentState: state,
-            importantFiles: importantFiles,
-            decisions: session?.decisions ?? [],
-            nextTasks: session?.nextTasks ?? [],
-            knownProblems: session?.knownProblems ?? [],
-            recentWork: session?.recentWork ?? [],
-            recentCommits: snap.recentCommits,
-            detectedInstructions: snap.detectedInstructionFiles,
-            todos: snap.todos,
-            notes: session?.notes,
-            generatedAt: Date()
         )
     }
 
     public func renderMarkdown(for handoff: Handoff, provider: String, mode: TokenBudgetMode) -> String {
-        let exporter: ContextExporter
-        switch provider.lowercased() {
-        case "claude":
-            exporter = ClaudeExporter()
-        case "codex":
-            exporter = CodexExporter()
-        case "cursor":
-            exporter = CursorExporter()
-        default:
-            exporter = GenericExporter()
-        }
-        return exporter.export(handoff: handoff, mode: mode)
+        exportService.renderMarkdown(for: handoff, provider: provider, mode: mode)
     }
 
     // MARK: - Clipboard & Export (Always preserves visible edits & sanitizes)
@@ -360,36 +330,59 @@ public final class AppState: ObservableObject {
             let refreshSuccess = await self.refreshRepository(silent: true)
             if !refreshSuccess && self.refreshErrorMessage != nil {
                 self.pendingStaleAction = { [weak self] in
-                    self?.proceedWithCopyToClipboard(provider: provider)
+                    self?.proceedWithCopyToClipboard(provider: provider, allowStale: true)
                 }
                 self.showStaleExportAlert = true
             } else {
-                self.proceedWithCopyToClipboard(provider: provider)
+                self.proceedWithCopyToClipboard(provider: provider, allowStale: false)
             }
         }
     }
 
-    public func proceedWithCopyToClipboard(provider: String) {
-        // Requirement 6: Copy copies the visible preview; both paths sanitize final text immediately before output
-        let contentToCopy: String
-        if !generatedMarkdown.isEmpty {
-            contentToCopy = generatedMarkdown
-        } else if let snap = snapshot {
-            let handoff = buildCanonicalHandoff(from: snap)
-            contentToCopy = renderMarkdown(for: handoff, provider: provider, mode: budgetMode)
-        } else {
-            return
+    public func proceedWithCopyToClipboard(provider: String, allowStale: Bool = false) {
+        let outcome = exportService.prepareExport(
+            action: .copy(provider: provider),
+            currentSnapshot: snapshot,
+            refreshedSnapshot: snapshot,
+            refreshErrorMessage: refreshErrorMessage,
+            currentDraft: generatedMarkdown,
+            isDraftModified: isDraftModified,
+            draftBaseSnapshotTimestamp: draftBaseSnapshotTimestamp,
+            budgetMode: budgetMode,
+            provider: provider,
+            session: session,
+            importantFiles: importantFiles,
+            allowStale: allowStale
+        )
+
+        switch outcome {
+        case .ready(let content, let metadata):
+            if metadata.wasRegenerated {
+                self.generatedMarkdown = content
+                self.draftBaseSnapshotTimestamp = metadata.snapshotRefreshedAt
+                self.isDraftModified = false
+            }
+            if let warning = metadata.warningNotice {
+                self.editedDraftWarning = warning
+            }
+
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(content, forType: .string)
+
+            let providerLabel = provider == "claude" ? "Claude Code" :
+                                provider == "codex" ? "Codex" :
+                                provider == "cursor" ? "Cursor" : "Generic"
+            showToast("Copied for \(providerLabel)!")
+
+        case .requiresStaleConfirmation:
+            self.pendingStaleAction = { [weak self] in
+                self?.proceedWithCopyToClipboard(provider: provider, allowStale: true)
+            }
+            self.showStaleExportAlert = true
+
+        case .failure(let message):
+            self.errorMessage = message
         }
-
-        let finalSanitizedText = SecretFilter.sanitizeText(contentToCopy)
-
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(finalSanitizedText, forType: .string)
-
-        let providerLabel = provider == "claude" ? "Claude Code" :
-                            provider == "codex" ? "Codex" :
-                            provider == "cursor" ? "Cursor" : "Generic"
-        showToast("Copied for \(providerLabel)!")
     }
 
     public func exportContextMarkdownFile() {
@@ -398,35 +391,58 @@ public final class AppState: ObservableObject {
             let refreshSuccess = await self.refreshRepository(silent: true)
             if !refreshSuccess && self.refreshErrorMessage != nil {
                 self.pendingStaleAction = { [weak self] in
-                    self?.proceedWithExportContextMarkdownFile()
+                    self?.proceedWithExportContextMarkdownFile(allowStale: true)
                 }
                 self.showStaleExportAlert = true
             } else {
-                self.proceedWithExportContextMarkdownFile()
+                self.proceedWithExportContextMarkdownFile(allowStale: false)
             }
         }
     }
 
-    public func proceedWithExportContextMarkdownFile() {
-        guard let snap = snapshot else { return }
-        let destinationURL = snap.path.appendingPathComponent("context.md")
+    public func proceedWithExportContextMarkdownFile(allowStale: Bool = false) {
+        let outcome = exportService.prepareExport(
+            action: .save,
+            currentSnapshot: snapshot,
+            refreshedSnapshot: snapshot,
+            refreshErrorMessage: refreshErrorMessage,
+            currentDraft: generatedMarkdown,
+            isDraftModified: isDraftModified,
+            draftBaseSnapshotTimestamp: draftBaseSnapshotTimestamp,
+            budgetMode: budgetMode,
+            provider: selectedProvider,
+            session: session,
+            importantFiles: importantFiles,
+            allowStale: allowStale
+        )
 
-        // Requirement 6: Save writes the visible preview, sanitized immediately before output
-        let rawContent: String
-        if !generatedMarkdown.isEmpty {
-            rawContent = generatedMarkdown
-        } else {
-            let handoff = buildCanonicalHandoff(from: snap)
-            rawContent = renderMarkdown(for: handoff, provider: "generic", mode: budgetMode)
-        }
+        switch outcome {
+        case .ready(let content, let metadata):
+            guard let destURL = metadata.destinationURL else { return }
+            if metadata.wasRegenerated {
+                self.generatedMarkdown = content
+                self.draftBaseSnapshotTimestamp = metadata.snapshotRefreshedAt
+                self.isDraftModified = false
+            }
+            if let warning = metadata.warningNotice {
+                self.editedDraftWarning = warning
+            }
 
-        let finalContent = SecretFilter.sanitizeText(rawContent)
+            do {
+                try exportService.writeExportFile(content: content, to: destURL)
+                showToast("Saved context.md to repository root")
+            } catch {
+                errorMessage = "Failed to export context.md: \(error.localizedDescription)"
+            }
 
-        do {
-            try finalContent.write(to: destinationURL, atomically: true, encoding: .utf8)
-            showToast("Saved context.md to repository root")
-        } catch {
-            errorMessage = "Failed to export context.md: \(error.localizedDescription)"
+        case .requiresStaleConfirmation:
+            self.pendingStaleAction = { [weak self] in
+                self?.proceedWithExportContextMarkdownFile(allowStale: true)
+            }
+            self.showStaleExportAlert = true
+
+        case .failure(let message):
+            self.errorMessage = message
         }
     }
 

@@ -37,6 +37,8 @@ public struct InstructionFileDetector: Sendable {
             ("AGENTS.md", "root"),
             ("CLAUDE.md", "root"),
             (".cursorrules", "root"),
+            (".windsurfrules", "windsurf"),
+            (".clinerules", "cline"),
             (".github/copilot-instructions.md", "github-copilot"),
             ("CONTRIBUTING.md", "root")
         ]

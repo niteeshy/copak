@@ -12,7 +12,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else if let iconURL = Bundle.module.url(forResource: "AppIcon", withExtension: "icns"),
                   let image = NSImage(contentsOf: iconURL) {
             NSApp.applicationIconImage = image
-        } else if let image = NSImage(contentsOfFile: "/Users/niteesh/Downloads/Copak.png") {
+        } else if let iconURL = Bundle.main.url(forResource: "Copak", withExtension: "png"),
+                  let image = NSImage(contentsOf: iconURL) {
+            NSApp.applicationIconImage = image
+        } else if let iconURL = Bundle.module.url(forResource: "Copak", withExtension: "png"),
+                  let image = NSImage(contentsOf: iconURL) {
             NSApp.applicationIconImage = image
         }
 
@@ -58,13 +62,13 @@ struct ContextPacketApp: App {
         .windowStyle(.hiddenTitleBar)
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("Open Repository...") {
+                Button("Open Project...") {
                     openRepositoryDialog()
                 }
                 .keyboardShortcut("o", modifiers: .command)
 
                 if state.currentScreen != .picker {
-                    Button("Close Repository") {
+                    Button("Close Project") {
                         state.currentScreen = .picker
                     }
                     .keyboardShortcut("w", modifiers: [.command, .shift])
@@ -78,11 +82,25 @@ struct ContextPacketApp: App {
                 .keyboardShortcut("h", modifiers: [.command, .shift])
                 .disabled(state.currentScreen == .picker)
 
-                Button("Refresh Repository") {
+                Button("Refresh Project State") {
                     Task { await state.refreshRepository() }
                 }
                 .keyboardShortcut("r", modifiers: .command)
                 .disabled(state.currentScreen == .picker)
+
+                Divider()
+
+                Button("Copy Handoff Packet") {
+                    state.copyToClipboard(provider: state.selectedProvider)
+                }
+                .keyboardShortcut(.return, modifiers: .command)
+                .disabled(state.currentScreen != .preview)
+
+                Button("Save context.md") {
+                    state.exportContextMarkdownFile()
+                }
+                .keyboardShortcut("s", modifiers: .command)
+                .disabled(state.currentScreen != .preview)
             }
         }
     }
@@ -93,7 +111,7 @@ struct ContextPacketApp: App {
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         panel.prompt = "Open"
-        panel.message = "Select a local Git repository"
+        panel.message = "Select a local project folder or Git repository"
 
         if panel.runModal() == .OK, let url = panel.url {
             Task {

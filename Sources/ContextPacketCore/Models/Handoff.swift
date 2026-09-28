@@ -85,6 +85,11 @@ public struct CanonicalRepositoryState: Codable, Sendable, Equatable {
     public let refreshedAt: Date
     public let isStale: Bool
     public let stalenessReason: String?
+    public let hasOmittedSensitiveChanges: Bool
+    public let hiddenSensitiveChangesCount: Int
+    public let isGitDirty: Bool
+    public let isEditedDraft: Bool
+    public let isGitRepository: Bool
 
     public init(
         branch: String,
@@ -96,11 +101,21 @@ public struct CanonicalRepositoryState: Codable, Sendable, Equatable {
         diffSummary: DiffSummary?,
         refreshedAt: Date = Date(),
         isStale: Bool = false,
-        stalenessReason: String? = nil
+        stalenessReason: String? = nil,
+        hasOmittedSensitiveChanges: Bool = false,
+        hiddenSensitiveChangesCount: Int = 0,
+        isGitDirty: Bool? = nil,
+        isEditedDraft: Bool = false,
+        isGitRepository: Bool = true
     ) {
         self.branch = branch
         self.headCommit = headCommit
-        self.isClean = isClean
+        self.hasOmittedSensitiveChanges = hasOmittedSensitiveChanges
+        self.hiddenSensitiveChangesCount = hiddenSensitiveChangesCount
+        let visibleCount = modifiedFiles.count + stagedFiles.count + untrackedFiles.count
+        self.isGitDirty = isGitDirty ?? (visibleCount > 0 || hasOmittedSensitiveChanges || !isClean)
+        // If the working tree has sensitive changes or is git dirty, it is not clean
+        self.isClean = isClean && !hasOmittedSensitiveChanges && !self.isGitDirty
         self.modifiedFiles = modifiedFiles
         self.stagedFiles = stagedFiles
         self.untrackedFiles = untrackedFiles
@@ -108,13 +123,14 @@ public struct CanonicalRepositoryState: Codable, Sendable, Equatable {
         self.refreshedAt = refreshedAt
         self.isStale = isStale
         self.stalenessReason = stalenessReason
+        self.isEditedDraft = isEditedDraft
+        self.isGitRepository = isGitRepository
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         branch = try container.decode(String.self, forKey: .branch)
         headCommit = try container.decodeIfPresent(String.self, forKey: .headCommit)
-        isClean = try container.decode(Bool.self, forKey: .isClean)
         modifiedFiles = try container.decodeIfPresent([String].self, forKey: .modifiedFiles) ?? []
         stagedFiles = try container.decodeIfPresent([String].self, forKey: .stagedFiles) ?? []
         untrackedFiles = try container.decodeIfPresent([String].self, forKey: .untrackedFiles) ?? []
@@ -122,6 +138,15 @@ public struct CanonicalRepositoryState: Codable, Sendable, Equatable {
         refreshedAt = try container.decodeIfPresent(Date.self, forKey: .refreshedAt) ?? Date()
         isStale = try container.decodeIfPresent(Bool.self, forKey: .isStale) ?? false
         stalenessReason = try container.decodeIfPresent(String.self, forKey: .stalenessReason)
+        hasOmittedSensitiveChanges = try container.decodeIfPresent(Bool.self, forKey: .hasOmittedSensitiveChanges) ?? false
+        hiddenSensitiveChangesCount = try container.decodeIfPresent(Int.self, forKey: .hiddenSensitiveChangesCount) ?? 0
+        let visibleCount = modifiedFiles.count + stagedFiles.count + untrackedFiles.count
+        let decodedIsGitDirty = try container.decodeIfPresent(Bool.self, forKey: .isGitDirty)
+        isGitDirty = decodedIsGitDirty ?? (visibleCount > 0 || hasOmittedSensitiveChanges)
+        let decodedIsClean = try container.decode(Bool.self, forKey: .isClean)
+        isClean = decodedIsClean && !hasOmittedSensitiveChanges && !isGitDirty
+        isEditedDraft = try container.decodeIfPresent(Bool.self, forKey: .isEditedDraft) ?? false
+        isGitRepository = try container.decodeIfPresent(Bool.self, forKey: .isGitRepository) ?? (branch != "non-git")
     }
 }
 

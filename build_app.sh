@@ -16,8 +16,12 @@ else
 fi
 
 echo "Generating and preparing standardized macOS AppIcon..."
+ICON_ARG=""
+if [ -n "$1" ] && [ -f "$1" ]; then
+    ICON_ARG="--source $1"
+fi
 if [ -f "scripts/generate_app_icon.py" ]; then
-    /usr/bin/python3 scripts/generate_app_icon.py 2>/dev/null || python3 scripts/generate_app_icon.py 2>/dev/null || true
+    /usr/bin/python3 scripts/generate_app_icon.py $ICON_ARG 2>/dev/null || python3 scripts/generate_app_icon.py $ICON_ARG 2>/dev/null || true
 fi
 
 echo "Creating Copak.app bundle..."

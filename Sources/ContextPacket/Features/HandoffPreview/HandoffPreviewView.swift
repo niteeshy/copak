@@ -21,6 +21,33 @@ public struct HandoffPreviewView: View {
                 // Integrated Seamless Window App Bar
                 topBar
 
+                if let warning = state.editedDraftWarning {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(Color.yellow)
+                            .font(.system(size: 11))
+                        Text(warning)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.9))
+                        Spacer()
+                        Button("Dismiss") {
+                            state.editedDraftWarning = nil
+                        }
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.6))
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.yellow.opacity(0.12))
+                    .overlay(
+                        Rectangle()
+                            .frame(height: 1)
+                            .foregroundStyle(Color.yellow.opacity(0.3)),
+                        alignment: .bottom
+                    )
+                }
+
                 // Dark Markdown Code Canvas
                 ZStack(alignment: .topTrailing) {
                     TextEditor(text: Binding(
@@ -45,7 +72,6 @@ public struct HandoffPreviewView: View {
                             Image(systemName: "doc.on.doc.fill")
                                 .font(.system(size: 10))
                             Text("Copy")
-                            KeycapBadge("⌘C")
                         }
                     }
                     .buttonStyle(GoldenGatePillButtonStyle(isProminent: false))
@@ -217,7 +243,8 @@ public struct HandoffPreviewView: View {
                 }
             }
             .buttonStyle(GoldenGatePillButtonStyle(isProminent: false))
-            .help("Save context.md into repository root")
+            .keyboardShortcut("s", modifiers: .command)
+            .help("Save context.md into repository root (⌘S)")
 
             Spacer()
 
@@ -247,6 +274,8 @@ public struct HandoffPreviewView: View {
                 .padding(.horizontal, 4)
             }
             .buttonStyle(GoldenGatePillButtonStyle(isProminent: true))
+            .keyboardShortcut(.return, modifiers: .command)
+            .help("Copy packet to clipboard (⌘↵)")
         }
     }
 

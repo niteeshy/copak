@@ -59,7 +59,7 @@ public struct ProjectPickerView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "folder.fill")
                                     .font(.system(size: 12, weight: .semibold))
-                                Text("Open Local Repository")
+                                Text("Open Local Project")
                                 KeycapBadge("⌘O", onWhite: true)
                             }
                             .padding(.horizontal, 16)
@@ -92,12 +92,12 @@ public struct ProjectPickerView: View {
                         .animation(.easeInOut(duration: 0.15), value: isTargetedForDrop)
                 )
 
-                // Recent Repositories Section (Monochrome Command List)
+                // Recent Projects Section (Monochrome Command List)
                 if !state.recentProjects.isEmpty {
                     VStack(alignment: .leading, spacing: 0) {
                         // Section Header
                         HStack {
-                            Text("RECENT REPOSITORIES")
+                            Text("RECENT PROJECTS")
                                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
                                 .foregroundStyle(Theme.tertiaryText)
 
@@ -195,7 +195,7 @@ public struct ProjectPickerView: View {
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         panel.prompt = "Open"
-        panel.message = "Select a local Git repository"
+        panel.message = "Select a local project folder or Git repository"
 
         if panel.runModal() == .OK, let url = panel.url {
             Task {
@@ -206,6 +206,14 @@ public struct ProjectPickerView: View {
 
     private func loadAppIcon() -> NSImage? {
         if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+           let img = NSImage(contentsOf: iconURL) {
+            return img
+        }
+        if let iconURL = Bundle.module.url(forResource: "AppIcon", withExtension: "icns"),
+           let img = NSImage(contentsOf: iconURL) {
+            return img
+        }
+        if let iconURL = Bundle.main.url(forResource: "Copak", withExtension: "png"),
            let img = NSImage(contentsOf: iconURL) {
             return img
         }

@@ -25,6 +25,9 @@ public enum Theme {
     public static let smallMonoFont = Font.system(size: 11, weight: .regular, design: .monospaced)
     public static let tinyMonoFont = Font.system(size: 10, weight: .medium, design: .monospaced)
 
+    // Micro-label typography for technical headers
+    public static let microLabelFont = Font.system(size: 10, weight: .bold, design: .monospaced)
+
     // Brand Display Typography (Bitcount Prop Single)
     public static func bitcountPropSingle(size: CGFloat = 26) -> Font {
         let candidateNames = [
@@ -74,21 +77,21 @@ public enum Theme {
 
     // Text Hierarchy
     public static let primaryText = Color.white.opacity(0.95)
-    public static let secondaryText = Color(white: 0.60)
-    public static let tertiaryText = Color(white: 0.40)
+    public static let secondaryText = Color(white: 0.78)  // Lighter, crisp grey for high readability
+    public static let tertiaryText = Color(white: 0.54)   // Clean, readable subtle grey
 
     // Minimalist Monochrome Status Accents (Refined, understated grey tones)
     public static let accent = Color.white.opacity(0.85)
     public static let indigo = Color.white.opacity(0.85)
     public static let emerald = Color(white: 0.85)
-    public static let amber = Color(white: 0.85)
+    public static let amber = Color(red: 0.96, green: 0.65, blue: 0.22)               // Warm amber highlight for stat callouts
     public static let azure = Color(white: 0.85)
     public static let violet = Color(white: 0.85)
-    public static let coral = Color(red: 0.95, green: 0.40, blue: 0.40)  // Kept subtle for errors only
-    public static let gold = Color.white.opacity(0.85)
+    public static let coral = Color(red: 0.95, green: 0.40, blue: 0.40)
+    public static let gold = Color(white: 0.85)
 }
 
-// MARK: - Dark Grey Wallpaper
+// MARK: - Dark Background
 public struct MacDesktopBackground: View {
     public init() {}
 
@@ -98,7 +101,8 @@ public struct MacDesktopBackground: View {
     }
 }
 
-// MARK: - Keyboard Shortcut Keycap
+
+// MARK: - Keycap Badge
 public struct KeycapBadge: View {
     let key: String
     var onWhite: Bool = false
@@ -111,19 +115,19 @@ public struct KeycapBadge: View {
     public var body: some View {
         Text(key)
             .font(.system(size: 9, weight: .semibold, design: .monospaced))
-            .foregroundStyle(onWhite ? Color.black.opacity(0.75) : Color.white.opacity(0.7))
-            .padding(.horizontal, 5)
-            .padding(.vertical, 2)
+            .foregroundStyle(onWhite ? Color.black.opacity(0.8) : Color.white.opacity(0.7))
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1.5)
             .background(onWhite ? Color.black.opacity(0.08) : Color.white.opacity(0.06))
-            .clipShape(RoundedRectangle(cornerRadius: 3.5, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 3.5, style: .continuous)
-                    .stroke(onWhite ? Color.black.opacity(0.15) : Color.white.opacity(0.12), lineWidth: 0.75)
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .stroke(onWhite ? Color.black.opacity(0.16) : Color.white.opacity(0.12), lineWidth: 0.75)
             )
     }
 }
 
-// MARK: - Section Card (Minimalist Dark Grey Panel)
+// MARK: - Section Card (Minimalist Monochromatic Grey Container)
 public struct SectionCard<Content: View>: View {
     let title: String
     let subtitle: String?
@@ -150,33 +154,33 @@ public struct SectionCard<Content: View>: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header Row
-            HStack(spacing: 8) {
+            // Header bar
+            HStack(spacing: 6) {
                 if let icon = icon {
                     Image(systemName: icon)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color.white.opacity(0.7))
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.8))
                 }
 
                 Text(title)
-                    .font(.system(size: 11, weight: .semibold, design: .default))
-                    .foregroundStyle(Color.white.opacity(0.9))
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Theme.tertiaryText)
 
                 if let badge = badge {
                     Text(badge)
                         .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(Color.white.opacity(0.75))
+                        .foregroundStyle(Color.white.opacity(0.85))
                         .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
+                        .padding(.vertical, 1)
                         .background(Color.white.opacity(0.06))
-                        .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                        .clipShape(Capsule())
                 }
 
                 Spacer()
 
                 if let subtitle = subtitle {
                     Text(subtitle)
-                        .font(.system(size: 10))
+                        .font(.system(size: 11, weight: .regular))
                         .foregroundStyle(Theme.secondaryText)
                 }
             }
@@ -205,7 +209,7 @@ public struct SectionCard<Content: View>: View {
     }
 }
 
-// MARK: - Monochrome Status Badges
+// MARK: - Status Badge (Monochrome Grey Outline Style)
 public struct GoldenGateBadge: View {
     let text: String
     let tint: Color
@@ -334,7 +338,6 @@ public struct GoldenGateIconButtonStyle: ButtonStyle {
     }
 }
 
-
 // MARK: - Radio Button Chip
 public struct MacRadioButton: View {
     let isSelected: Bool
@@ -384,7 +387,7 @@ public struct LinearInputField: View {
             if text.isEmpty {
                 Text(placeholder)
                     .font(Theme.bodyFont)
-                    .foregroundStyle(Color.white.opacity(0.40))
+                    .foregroundStyle(Theme.tertiaryText)
                     .padding(.horizontal, 10)
                     .allowsHitTesting(false)
             }

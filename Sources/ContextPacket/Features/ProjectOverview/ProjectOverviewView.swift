@@ -334,14 +334,16 @@ public struct ProjectOverviewView: View {
 
     private var repositoryStateSection: some View {
         SectionCard(
-            title: "REPOSITORY STATE",
+            title: state.snapshot?.isGitRepository == false ? "PROJECT DIRECTORY STATE" : "REPOSITORY STATE",
             subtitle: "Detected from local working directory"
         ) {
             VStack(alignment: .leading, spacing: 10) {
                 // Header Toggle Bar
                 HStack(spacing: 8) {
                     if let snap = state.snapshot {
-                        if snap.isClean {
+                        if !snap.isGitRepository {
+                            GoldenGateBadge(text: "Non-Git Project", systemImage: "folder.fill")
+                        } else if snap.isClean {
                             GoldenGateBadge(text: "Clean Tree", hasGlow: true)
                         } else {
                             if !snap.modifiedFiles.isEmpty {
@@ -352,6 +354,9 @@ public struct ProjectOverviewView: View {
                             }
                             if !snap.untrackedFiles.isEmpty {
                                 GoldenGateBadge(text: "\(snap.untrackedFiles.count) untracked", systemImage: "questionmark.circle")
+                            }
+                            if snap.hasOmittedSensitiveChanges {
+                                GoldenGateBadge(text: "Sensitive changes omitted", systemImage: "lock.shield")
                             }
                         }
 
@@ -388,10 +393,40 @@ public struct ProjectOverviewView: View {
                     .buttonStyle(.plain)
                 }
 
+                if let snap = state.snapshot, snap.hasOmittedSensitiveChanges {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.shield.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.orange)
+                        Text("Working tree contains sensitive changes omitted from the packet.")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.white.opacity(0.85))
+                    }
+                    .padding(8)
+                    .background(Color.orange.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+                    )
+                }
+
                 // Expanded changed files & commits
                 if isRepositoryStateExpanded {
                     VStack(alignment: .leading, spacing: 8) {
-                        if let snap = state.snapshot, !snap.allChangedFilePaths.isEmpty {
+                        if let snap = state.snapshot, !snap.isGitRepository {
+                            HStack(spacing: 6) {
+                                Image(systemName: "info.circle")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Theme.secondaryText)
+                                Text("This folder is not a Git repository. Git commit history and working tree diffs are not tracked.")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Theme.secondaryText)
+                            }
+                            .padding(8)
+                            .background(Color.white.opacity(0.02))
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        } else if let snap = state.snapshot, !snap.allChangedFilePaths.isEmpty {
                             VStack(alignment: .leading, spacing: 4) {
                                 ForEach(snap.modifiedFiles) { f in
                                     changedFileRow(path: f.path, status: "M")

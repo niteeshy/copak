@@ -106,6 +106,18 @@ public struct RepositorySnapshot: Codable, Sendable, Equatable {
     public let diffSummary: DiffSummary?
     public let refreshedAt: Date
     public let refreshError: String?
+    public let isGitDirty: Bool
+    public let hiddenSensitiveChangesCount: Int
+    public let hasOmittedSensitiveChanges: Bool
+    public let isGitRepository: Bool
+
+    public var visibleSafeChangesCount: Int {
+        modifiedFiles.count + stagedFiles.count + untrackedFiles.count
+    }
+
+    public var visibleSafeChanges: [ChangedFile] {
+        stagedFiles + modifiedFiles + untrackedFiles
+    }
 
     public init(
         name: String,
@@ -124,7 +136,11 @@ public struct RepositorySnapshot: Codable, Sendable, Equatable {
         todos: [TodoItem],
         diffSummary: DiffSummary?,
         refreshedAt: Date = Date(),
-        refreshError: String? = nil
+        refreshError: String? = nil,
+        isGitDirty: Bool? = nil,
+        hiddenSensitiveChangesCount: Int = 0,
+        hasOmittedSensitiveChanges: Bool? = nil,
+        isGitRepository: Bool = true
     ) {
         self.name = name
         self.path = path
@@ -143,6 +159,11 @@ public struct RepositorySnapshot: Codable, Sendable, Equatable {
         self.diffSummary = diffSummary
         self.refreshedAt = refreshedAt
         self.refreshError = refreshError
+        self.hiddenSensitiveChangesCount = hiddenSensitiveChangesCount
+        self.hasOmittedSensitiveChanges = hasOmittedSensitiveChanges ?? (hiddenSensitiveChangesCount > 0)
+        let visibleCount = modifiedFiles.count + stagedFiles.count + untrackedFiles.count
+        self.isGitDirty = isGitDirty ?? (visibleCount > 0 || self.hasOmittedSensitiveChanges)
+        self.isGitRepository = isGitRepository
     }
 
     public init(from decoder: Decoder) throws {
@@ -164,10 +185,16 @@ public struct RepositorySnapshot: Codable, Sendable, Equatable {
         diffSummary = try container.decodeIfPresent(DiffSummary.self, forKey: .diffSummary)
         refreshedAt = try container.decodeIfPresent(Date.self, forKey: .refreshedAt) ?? Date()
         refreshError = try container.decodeIfPresent(String.self, forKey: .refreshError)
+        hiddenSensitiveChangesCount = try container.decodeIfPresent(Int.self, forKey: .hiddenSensitiveChangesCount) ?? 0
+        let omitted = try container.decodeIfPresent(Bool.self, forKey: .hasOmittedSensitiveChanges) ?? (hiddenSensitiveChangesCount > 0)
+        hasOmittedSensitiveChanges = omitted
+        let visibleCount = modifiedFiles.count + stagedFiles.count + untrackedFiles.count
+        isGitDirty = try container.decodeIfPresent(Bool.self, forKey: .isGitDirty) ?? (visibleCount > 0 || hasOmittedSensitiveChanges)
+        isGitRepository = try container.decodeIfPresent(Bool.self, forKey: .isGitRepository) ?? (branch != "non-git")
     }
 
     public var isClean: Bool {
-        modifiedFiles.isEmpty && stagedFiles.isEmpty && untrackedFiles.isEmpty
+        !isGitDirty && visibleSafeChangesCount == 0 && !hasOmittedSensitiveChanges
     }
 
     public var allChangedFilePaths: [String] {

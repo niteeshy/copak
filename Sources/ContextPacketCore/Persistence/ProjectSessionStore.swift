@@ -78,10 +78,32 @@ public final class ProjectSessionStore: @unchecked Sendable {
             let oldDir = appSupport.appendingPathComponent("ContextPacket/sessions", isDirectory: true)
             let fm = FileManager.default
             if !fm.fileExists(atPath: self.storageDir.path) && fm.fileExists(atPath: oldDir.path) {
-                try? fm.copyItem(at: oldDir, to: self.storageDir)
+                migrateSessions(from: oldDir, to: self.storageDir)
             }
         }
         try? FileManager.default.createDirectory(at: self.storageDir, withIntermediateDirectories: true)
+    }
+
+    /// Migrates sessions from a legacy directory to the new storage directory, sanitizing all sessions
+    /// and writing them atomically so legacy raw secrets are never preserved.
+    public func migrateSessions(from sourceDir: URL, to destinationDir: URL) {
+        let fm = FileManager.default
+        try? fm.createDirectory(at: destinationDir, withIntermediateDirectories: true)
+        guard let files = try? fm.contentsOfDirectory(at: sourceDir, includingPropertiesForKeys: nil) else { return }
+
+        for file in files where file.pathExtension == "json" {
+            guard let data = try? Data(contentsOf: file),
+                  let session = try? JSONDecoder().decode(SavedProjectSession.self, from: data) else {
+                continue
+            }
+            let sanitized = SecretFilter.sanitizeSession(session)
+            let destURL = destinationDir.appendingPathComponent(file.lastPathComponent)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            if let sanitizedData = try? encoder.encode(sanitized) {
+                try? sanitizedData.write(to: destURL, options: .atomic)
+            }
+        }
     }
 
     public func storageKey(for path: String) -> String {
@@ -102,7 +124,22 @@ public final class ProjectSessionStore: @unchecked Sendable {
               let session = try? JSONDecoder().decode(SavedProjectSession.self, from: data) else {
             return SavedProjectSession(repositoryPath: path)
         }
-        return session
+
+        // Always sanitize session upon load so legacy secrets are never exposed in UI
+        let sanitized = SecretFilter.sanitizeSession(session)
+
+        // If the loaded data contained unsanitized secrets, rewrite atomically
+        if let rawEncoded = try? JSONEncoder().encode(session),
+           let sanitizedEncoded = try? JSONEncoder().encode(sanitized),
+           rawEncoded != sanitizedEncoded {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            if let cleanData = try? encoder.encode(sanitized) {
+                try? cleanData.write(to: fileURL, options: .atomic)
+            }
+        }
+
+        return sanitized
     }
 
     @discardableResult

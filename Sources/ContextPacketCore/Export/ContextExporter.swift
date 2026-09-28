@@ -19,10 +19,15 @@ public struct MarkdownHandoffBuilder: Sendable {
         return f
     }()
 
-    public func buildContent(handoff rawHandoff: Handoff, mode: TokenBudgetMode) -> String {
+    public func buildContent(
+        handoff rawHandoff: Handoff,
+        mode: TokenBudgetMode,
+        wrapper: ((String) -> String)? = nil
+    ) -> String {
         // 1. Sanitize the canonical handoff model before anything is built
         let handoff = SecretFilter.sanitizeHandoff(rawHandoff)
         let targetTokens = config.targetTokens(for: mode)
+        let wrap = wrapper ?? { $0 }
 
         var budgetDisclosures: [String] = []
 
@@ -37,10 +42,21 @@ public struct MarkdownHandoffBuilder: Sendable {
 
         // Level 6 items
         var includeCompletedWork = (mode != .compact) && !handoff.completedWork.isEmpty
-        let maxImportantFiles = handoff.importantFiles.count
+        var maxImportantFiles = handoff.importantFiles.count
 
         // Level 5 items
+        var includeInstructions = !handoff.detectedInstructions.isEmpty
         var instructionRenderingLevel: InstructionRenderStyle = (mode == .comprehensive ? .full : (mode == .standard ? .bounded : .references))
+
+        // Level 4 items
+        var includeKnownProblems = (mode != .compact) && !handoff.knownProblems.isEmpty
+        var maxDecisions = handoff.decisions.count
+
+        // Level 2 & 1 items (preserved highest)
+        var maxNextTasks = handoff.nextTasks.count
+        var maxTaskCharLength = Int.max
+        var maxChangedFiles = 50
+        var maxGoalLength = Int.max
 
         enum InstructionRenderStyle {
             case full
@@ -68,63 +84,95 @@ public struct MarkdownHandoffBuilder: Sendable {
             sections.append(projectLines.joined(separator: "\n"))
 
             // P1: CURRENT GOAL
-            let goalText = handoff.currentGoal.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !goalText.isEmpty {
+            let trimmedGoal = handoff.currentGoal.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedGoal.isEmpty {
+                var goalText = trimmedGoal
+                if goalText.count > maxGoalLength {
+                    goalText = String(goalText.prefix(maxGoalLength)) + "\n... [Truncated for \(mode.rawValue) budget]"
+                }
                 sections.append("## CURRENT GOAL\n\n\(goalText)")
             }
 
             // P2: NEXT TASK
-            if !handoff.nextTasks.isEmpty {
-                let tasksText = handoff.nextTasks.map { "- \($0.text)" }.joined(separator: "\n")
+            if !handoff.nextTasks.isEmpty && maxNextTasks > 0 {
+                let visibleTasks = handoff.nextTasks.prefix(maxNextTasks)
+                let tasksText = visibleTasks.map { task in
+                    var t = task.text
+                    if t.count > maxTaskCharLength {
+                        t = String(t.prefix(maxTaskCharLength)) + "..."
+                    }
+                    return "- \(t)"
+                }.joined(separator: "\n")
                 sections.append("## NEXT TASK\n\n\(tasksText)")
             }
 
             // P3: CURRENT STATE & GIT DETAILS
             var stateLines: [String] = []
-            stateLines.append("Branch: \(handoff.currentState.branch)")
-            if let head = handoff.currentState.headCommit {
-                stateLines.append("HEAD: \(head)")
-            }
+            if handoff.currentState.isGitRepository {
+                stateLines.append("Branch: \(handoff.currentState.branch)")
+                if let head = handoff.currentState.headCommit {
+                    stateLines.append("HEAD: \(head)")
+                }
 
-            if handoff.currentState.isClean {
-                stateLines.append("Working tree: clean")
+                if handoff.currentState.hasOmittedSensitiveChanges {
+                    stateLines.append("> Working tree contains sensitive changes omitted from the packet.")
+                }
+
+                if handoff.currentState.isClean {
+                    stateLines.append("Working tree: clean")
+                } else {
+                    let staged = handoff.currentState.stagedFiles
+                    let modified = handoff.currentState.modifiedFiles
+                    let untracked = handoff.currentState.untrackedFiles
+
+                    if !staged.isEmpty {
+                        stateLines.append("\nStaged files (\(staged.count)):")
+                        for f in staged.prefix(maxChangedFiles) {
+                            stateLines.append("- \(f)")
+                        }
+                        if staged.count > maxChangedFiles {
+                            stateLines.append("... [\(staged.count - maxChangedFiles) more staged files omitted]")
+                        }
+                    }
+                    if !modified.isEmpty {
+                        stateLines.append("\nModified files (\(modified.count)):")
+                        for f in modified.prefix(maxChangedFiles) {
+                            stateLines.append("- \(f)")
+                        }
+                        if modified.count > maxChangedFiles {
+                            stateLines.append("... [\(modified.count - maxChangedFiles) more modified files omitted]")
+                        }
+                    }
+                    if !untracked.isEmpty {
+                        stateLines.append("\nUntracked files (\(untracked.count)):")
+                        for f in untracked.prefix(maxChangedFiles) {
+                            stateLines.append("- \(f)")
+                        }
+                        if untracked.count > maxChangedFiles {
+                            stateLines.append("... [\(untracked.count - maxChangedFiles) more untracked files omitted]")
+                        }
+                    }
+                    if let diff = handoff.currentState.diffSummary, diff.filesChanged > 0 {
+                        stateLines.append("\nDiff statistics: \(diff.lineSummary)")
+                    }
+                }
             } else {
-                if !handoff.currentState.stagedFiles.isEmpty {
-                    stateLines.append("\nStaged files (\(handoff.currentState.stagedFiles.count)):")
-                    for f in handoff.currentState.stagedFiles {
-                        stateLines.append("- \(f)")
-                    }
-                }
-                if !handoff.currentState.modifiedFiles.isEmpty {
-                    stateLines.append("\nModified files (\(handoff.currentState.modifiedFiles.count)):")
-                    for f in handoff.currentState.modifiedFiles {
-                        stateLines.append("- \(f)")
-                    }
-                }
-                if !handoff.currentState.untrackedFiles.isEmpty {
-                    stateLines.append("\nUntracked files (\(handoff.currentState.untrackedFiles.count)):")
-                    for f in handoff.currentState.untrackedFiles {
-                        stateLines.append("- \(f)")
-                    }
-                }
-                if let diff = handoff.currentState.diffSummary, diff.filesChanged > 0 {
-                    stateLines.append("\nDiff statistics: \(diff.lineSummary)")
-                }
+                stateLines.append("Local project directory (non-git)")
             }
             sections.append("## CURRENT STATE\n\n\(stateLines.joined(separator: "\n"))")
 
             // P4: KNOWN PROBLEMS & ARCHITECTURAL DECISIONS
-            if mode != .compact && !handoff.knownProblems.isEmpty {
+            if includeKnownProblems && !handoff.knownProblems.isEmpty {
                 let problemsText = handoff.knownProblems.map { "- \($0.text)" }.joined(separator: "\n")
                 sections.append("## KNOWN PROBLEMS\n\n\(problemsText)")
             }
-            if !handoff.decisions.isEmpty {
-                let decisionsText = handoff.decisions.map { "- \($0.text)" }.joined(separator: "\n")
+            if !handoff.decisions.isEmpty && maxDecisions > 0 {
+                let decisionsText = handoff.decisions.prefix(maxDecisions).map { "- \($0.text)" }.joined(separator: "\n")
                 sections.append("## DECISIONS\n\n\(decisionsText)")
             }
 
             // P5: APPLICABLE PROJECT INSTRUCTIONS
-            if !handoff.detectedInstructions.isEmpty {
+            if includeInstructions && !handoff.detectedInstructions.isEmpty {
                 var instLines: [String] = []
                 switch instructionRenderingLevel {
                 case .references:
@@ -204,16 +252,17 @@ public struct MarkdownHandoffBuilder: Sendable {
             return sections.joined(separator: "\n\n")
         }
 
-        // Budget evaluation loop: progressively omit from lowest priority upwards
+        // Budget evaluation loop: progressively omit from lowest priority upwards,
+        // measuring the ENTIRE wrapped output (including provider header/footer)
         var currentOutput = assemble()
-        var estimate = TokenBudgetEstimate(text: currentOutput).estimatedTokens
+        var estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
 
         // Priority 8 step: Diff excerpt
         if estimate > targetTokens && includeDiffExcerpt {
             includeDiffExcerpt = false
             budgetDisclosures.append("Diff excerpt omitted to fit \(mode.rawValue) budget target (~\(targetTokens) tokens).")
             currentOutput = assemble()
-            estimate = TokenBudgetEstimate(text: currentOutput).estimatedTokens
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
         }
 
         // Priority 8 step: TODOs
@@ -221,7 +270,7 @@ public struct MarkdownHandoffBuilder: Sendable {
             includeTodos = false
             budgetDisclosures.append("TODO items omitted to fit \(mode.rawValue) budget.")
             currentOutput = assemble()
-            estimate = TokenBudgetEstimate(text: currentOutput).estimatedTokens
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
         }
 
         // Priority 8 step: Notes
@@ -229,7 +278,7 @@ public struct MarkdownHandoffBuilder: Sendable {
             includeNotes = false
             budgetDisclosures.append("Notes section omitted to fit \(mode.rawValue) budget.")
             currentOutput = assemble()
-            estimate = TokenBudgetEstimate(text: currentOutput).estimatedTokens
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
         }
 
         // Priority 7 step: Recent commits
@@ -237,7 +286,7 @@ public struct MarkdownHandoffBuilder: Sendable {
             maxCommits = 2
             budgetDisclosures.append("Recent commits capped at 2 to preserve budget headroom.")
             currentOutput = assemble()
-            estimate = TokenBudgetEstimate(text: currentOutput).estimatedTokens
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
         }
 
         // Priority 7 step: Recent work
@@ -245,7 +294,7 @@ public struct MarkdownHandoffBuilder: Sendable {
             includeRecentWork = false
             budgetDisclosures.append("Recent work list omitted to fit \(mode.rawValue) budget.")
             currentOutput = assemble()
-            estimate = TokenBudgetEstimate(text: currentOutput).estimatedTokens
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
         }
 
         // Priority 6 step: Completed work
@@ -253,26 +302,141 @@ public struct MarkdownHandoffBuilder: Sendable {
             includeCompletedWork = false
             budgetDisclosures.append("Completed work section omitted to fit \(mode.rawValue) budget.")
             currentOutput = assemble()
-            estimate = TokenBudgetEstimate(text: currentOutput).estimatedTokens
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
         }
 
-        // Priority 5 step: Instructions downgrade (full -> bounded -> references)
+        // Priority 6 step: Important files reduction
+        if estimate > targetTokens && maxImportantFiles > 5 {
+            maxImportantFiles = 5
+            budgetDisclosures.append("Important files list capped at 5 to fit \(mode.rawValue) budget.")
+            currentOutput = assemble()
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
+        }
+
+        // Priority 5 step: Instructions downgrade (full -> bounded -> references -> omitted)
         if estimate > targetTokens && instructionRenderingLevel == .full {
             instructionRenderingLevel = .bounded
             budgetDisclosures.append("Instruction files bounded to excerpts to fit \(mode.rawValue) budget.")
             currentOutput = assemble()
-            estimate = TokenBudgetEstimate(text: currentOutput).estimatedTokens
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
         }
 
         if estimate > targetTokens && instructionRenderingLevel == .bounded {
             instructionRenderingLevel = .references
             budgetDisclosures.append("Instruction files reduced to path references to fit \(mode.rawValue) budget.")
             currentOutput = assemble()
-            estimate = TokenBudgetEstimate(text: currentOutput).estimatedTokens
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
         }
 
-        // Final sanity check through secret sanitizer
-        return SecretFilter.sanitizeText(currentOutput)
+        if estimate > targetTokens && includeInstructions {
+            includeInstructions = false
+            budgetDisclosures.append("Instruction references omitted to fit \(mode.rawValue) budget.")
+            currentOutput = assemble()
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
+        }
+
+        // Priority 4 step: Known problems
+        if estimate > targetTokens && includeKnownProblems {
+            includeKnownProblems = false
+            budgetDisclosures.append("Known problems section omitted to fit \(mode.rawValue) budget.")
+            currentOutput = assemble()
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
+        }
+
+        // Priority 4 step: Decisions reduction
+        if estimate > targetTokens && maxDecisions > 3 {
+            maxDecisions = 3
+            budgetDisclosures.append("Decisions capped at 3 to fit \(mode.rawValue) budget.")
+            currentOutput = assemble()
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
+        }
+
+        if estimate > targetTokens && maxDecisions > 0 {
+            maxDecisions = 0
+            budgetDisclosures.append("Decisions section omitted to fit \(mode.rawValue) budget.")
+            currentOutput = assemble()
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
+        }
+
+        // Priority 6 step: Omit remaining important files if still exceeding
+        if estimate > targetTokens && maxImportantFiles > 0 {
+            maxImportantFiles = 0
+            budgetDisclosures.append("Important files section omitted to fit \(mode.rawValue) budget.")
+            currentOutput = assemble()
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
+        }
+
+        // Priority 7 step: Omit remaining commits if still exceeding
+        if estimate > targetTokens && maxCommits > 0 {
+            maxCommits = 0
+            budgetDisclosures.append("Recent commits omitted to fit \(mode.rawValue) budget.")
+            currentOutput = assemble()
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
+        }
+
+        // Priority 2 step: Next tasks reduction
+        if estimate > targetTokens && maxNextTasks > 3 {
+            maxNextTasks = 3
+            budgetDisclosures.append("Next tasks capped at 3 to fit \(mode.rawValue) budget.")
+            currentOutput = assemble()
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
+        }
+
+        if estimate > targetTokens && maxNextTasks > 1 {
+            maxNextTasks = 1
+            budgetDisclosures.append("Next tasks capped at 1 to fit \(mode.rawValue) budget.")
+            currentOutput = assemble()
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
+        }
+
+        if estimate > targetTokens && maxTaskCharLength > 120 {
+            maxTaskCharLength = 120
+            budgetDisclosures.append("Next task text bounded to fit \(mode.rawValue) budget.")
+            currentOutput = assemble()
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
+        }
+
+        // Priority 3 step: Git tree file list reduction
+        if estimate > targetTokens && maxChangedFiles > 5 {
+            maxChangedFiles = 5
+            budgetDisclosures.append("Working tree file list capped to fit \(mode.rawValue) budget.")
+            currentOutput = assemble()
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
+        }
+
+        // Priority 1 step: Truncate oversized goal if still exceeding
+        if estimate > targetTokens && maxGoalLength > 200 {
+            maxGoalLength = 200
+            budgetDisclosures.append("Current goal truncated to fit \(mode.rawValue) budget.")
+            currentOutput = assemble()
+            estimate = TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens
+        }
+
+        // Deterministic final budgeting pass:
+        // If estimate still exceeds target tokens, trim content progressively until it strictly fits
+        if estimate > targetTokens {
+            budgetDisclosures.append("Remaining packet content bounded to strictly respect estimated budget (~\(targetTokens) tokens).")
+            currentOutput = assemble()
+
+            let maxCharsAllowed = targetTokens * 4
+            let emptyWrapperLength = wrap("").count
+            let maxCoreAllowed = max(50, maxCharsAllowed - emptyWrapperLength)
+
+            if currentOutput.count > maxCoreAllowed {
+                let prefixIndex = currentOutput.index(currentOutput.startIndex, offsetBy: min(currentOutput.count, maxCoreAllowed))
+                currentOutput = String(currentOutput[..<prefixIndex])
+            }
+
+            while TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens > targetTokens && currentOutput.count > 10 {
+                let dropCount = max(1, (TokenBudgetEstimate(text: wrap(currentOutput)).estimatedTokens - targetTokens) * 4)
+                let newLen = max(10, currentOutput.count - dropCount)
+                currentOutput = String(currentOutput.prefix(newLen))
+            }
+        }
+
+        // Final output with wrapper applied (if any) and sanitized
+        let finalExport = wrap(currentOutput)
+        return SecretFilter.sanitizeText(finalExport)
     }
 }
 

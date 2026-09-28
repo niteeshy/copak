@@ -97,4 +97,104 @@ final class TokenBudgetPriorityTests: XCTestCase {
         XCTAssertTrue(standard.contains("Next Task 1: Must never be omitted"))
         XCTAssertTrue(standard.contains("## DECISIONS"))
     }
+
+    func testFinalEstimatedTokensNeverExceedsConfiguredTargetAcrossAllModesAndProviders() {
+        // Create an intentionally massive handoff that exceeds even comprehensive budget by 10x
+        let hugeGoal = String(repeating: "This is a massive user goal describing all requirements in extreme verbosity. ", count: 300)
+        let tasks = (1...150).map { i in
+            TaskItem(text: "Task \(i): " + String(repeating: "Do this subtask very carefully with lots of detail. ", count: 10), source: .user)
+        }
+        let decisions = (1...150).map { i in
+            Decision(text: "Decision \(i): " + String(repeating: "We decided this architectural direction due to performance reasons. ", count: 10), source: .user)
+        }
+        let files = (1...200).map { i in "Sources/Module/Component/VeryLongPathNameForFileNumber\(i).swift" }
+        let commits = (1...50).map { i in
+            Commit(hash: "hash\(i)", shortHash: "h\(i)", author: "Engineer", date: "2026-09-28", subject: "Detailed commit message \(i) with lots of prose")
+        }
+        let instructions = (1...20).map { i in
+            InstructionFile(
+                path: "rules/rule\(i).md",
+                filename: "rule\(i).md",
+                scope: "scope\(i)",
+                content: String(repeating: "Instruction content line explaining formatting and rules. ", count: 50)
+            )
+        }
+        let todos = (1...50).map { i in
+            TodoItem(file: "File\(i).swift", line: i * 5, kind: "TODO", comment: "Resolve issue \(i) urgently", isInsideChangedFile: true)
+        }
+
+        let project = ProjectContext(
+            name: "MegaProject",
+            repositoryPath: "/Users/dev/MegaProject",
+            ecosystem: "Swift",
+            remoteURL: "https://github.com/mega/project.git"
+        )
+
+        let state = CanonicalRepositoryState(
+            branch: "main",
+            headCommit: "abcdef1234567890",
+            isClean: false,
+            modifiedFiles: files,
+            stagedFiles: [],
+            untrackedFiles: [],
+            diffSummary: DiffSummary(
+                filesChanged: 200,
+                additions: 15000,
+                deletions: 4000,
+                files: files.map { FileDelta(path: $0, additions: 75, deletions: 20) },
+                rawDiffSnippet: String(repeating: "+ let x = 1\n- let x = 0\n", count: 200),
+                isTruncated: true
+            ),
+            refreshedAt: Date(),
+            isStale: false,
+            stalenessReason: nil
+        )
+
+        let handoff = Handoff(
+            project: project,
+            currentGoal: hugeGoal,
+            completedWork: [ContextItem(text: "Initial bootstrapping completed")],
+            currentState: state,
+            importantFiles: files.map { ImportantFile(path: $0, reason: "Core component") },
+            decisions: decisions,
+            nextTasks: tasks,
+            knownProblems: [ProblemItem(text: "High memory pressure during build")],
+            recentWork: [ContextItem(text: "Refactored module structure")],
+            recentCommits: commits,
+            detectedInstructions: instructions,
+            todos: todos,
+            notes: String(repeating: "Additional developer notes with guidelines. ", count: 40)
+        )
+
+        let modes: [TokenBudgetMode] = [.compact, .standard, .comprehensive]
+        let exporters: [ContextExporter] = [
+            ClaudeExporter(),
+            CodexExporter(),
+            CursorExporter(),
+            GenericExporter()
+        ]
+
+        let config = TokenBudgetConfig.default
+
+        for mode in modes {
+            let target = config.target(for: mode)
+            for exporter in exporters {
+                let output = exporter.export(handoff: handoff, mode: mode)
+                let estimate = TokenBudgetEstimate(text: output).estimatedTokens
+
+                // Assert that the final estimated tokens strictly fit within configured target
+                XCTAssertLessThanOrEqual(
+                    estimate,
+                    target,
+                    "Final estimated tokens (\(estimate)) must be <= configured target (\(target)) for \(exporter.providerName) in \(mode.rawValue) mode"
+                )
+
+                // Assert disclosures are emitted
+                XCTAssertTrue(output.contains("## BUDGET DISCLOSURES"), "Budget disclosures must be present when content is truncated")
+
+                // Assert core project identification is retained
+                XCTAssertTrue(output.contains("# PROJECT"), "Project header must be preserved")
+            }
+        }
+    }
 }
