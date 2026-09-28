@@ -18,17 +18,52 @@
       --mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
       --serif: 'Martel', Georgia, 'Times New Roman', serif;
 
-      /* Surfaces */
+      /* Dark Mode Palette by Default */
+      --bg-page:    #0e0f12;
+      --bg-surface: #16171c;
+      --bg-panel:   #1e2026;
+
+      /* Lines */
+      --border-light:   #2a2d36;
+      --border-strong:  #414552;
+      --border-default: #f3f4f6;
+
+      /* Text */
+      --text-primary:     #f4f5f7;
+      --text-secondary:   #afb3bd;
+      --text-tertiary:    #757a87;
+      --text-caption:     #9094a0;
+      --text-placeholder: #646875;
+      --text-disabled:    #474a54;
+      --text-inverse:     #0e0f12;
+
+      /* Controls */
+      --button-bg:          #f4f5f7;
+      --button-text:        #0e0f12;
+      --button-tertiary-bg: #262830;
+
+      /* Semantic Accents */
+      --accent:         #4eff7b;   /* UI highlight green */
+      --style-yellow1:  #ffff00;   /* Beta / badge yellow */
+      --style-orange2:  #ff6614;   /* Task / warning accent */
+      --type-essay:     #b646ff;   /* Purple category */
+      --type-talk:      #009bb4;   /* Teal category */
+      --red:            #ff382b;   /* Redaction highlight */
+      --dot:            rgba(255, 255, 255, 0.08);
+
+      --radius: 0px;
+      --max-width: 1140px;
+    }
+
+    body.light {
       --bg-page:    #E0E0E0;
       --bg-surface: #ffffff;
       --bg-panel:   #ececec;
 
-      /* Lines */
       --border-light:   #d3d3d3;
       --border-strong:  #a5a5a5;
       --border-default: #0b0b0b;
 
-      /* Text */
       --text-primary:     #0b0b0b;
       --text-secondary:   #454545;
       --text-tertiary:    #707070;
@@ -37,46 +72,11 @@
       --text-disabled:    #c2c2c2;
       --text-inverse:     #ffffff;
 
-      /* Controls */
       --button-bg:          #0b0b0b;
       --button-text:        #ffffff;
       --button-tertiary-bg: #f2f2f2;
 
-      /* Semantic Accents */
-      --accent:         #4eff7b;   /* UI highlight green */
-      --style-yellow1:  #ffff00;   /* Beta / badge yellow */
-      --style-orange2:  #ff5700;   /* Task / warning accent */
-      --type-essay:     #a728ff;   /* Purple category */
-      --type-talk:      #00728a;   /* Teal category */
-      --red:            #ff2313;   /* Redaction highlight */
-      --dot:            rgba(180, 180, 180, 0.45);
-
-      --radius: 0px; /* Sharp modernist editorial edges */
-      --max-width: 1180px;
-    }
-
-    body.night {
-      --bg-page:    #151618;
-      --bg-surface: #1e1f23;
-      --bg-panel:   #25272c;
-
-      --border-light:   #34373e;
-      --border-strong:  #50545e;
-      --border-default: #ececec;
-
-      --text-primary:     #f2f3f5;
-      --text-secondary:   #c2c5cc;
-      --text-tertiary:    #9397a1;
-      --text-caption:     #a0a4ae;
-      --text-placeholder: #767a84;
-      --text-disabled:    #555861;
-      --text-inverse:     #0b0b0b;
-
-      --button-bg:          #ececec;
-      --button-text:        #0b0b0b;
-      --button-tertiary-bg: #2b2e35;
-
-      --dot: rgba(65, 68, 77, 0.45);
+      --dot: rgba(180, 180, 180, 0.45);
     }
 
     * {
@@ -121,14 +121,18 @@
       position: sticky;
       top: 0;
       z-index: 1000;
+      width: 100%;
       transition: background-color 0.25s ease, border-color 0.25s ease;
     }
 
     .topbar-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 48px;
+      height: 52px;
     }
 
     .brand-block {
@@ -138,22 +142,27 @@
     }
 
     .brand-logo {
-      background: var(--button-bg);
-      color: var(--button-text);
+      background: var(--bg-panel);
+      color: var(--text-primary);
+      border: 1px solid var(--border-light);
       font-family: var(--mono);
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 700;
       letter-spacing: 0.08em;
-      padding: 0 16px;
-      height: 100%;
+      padding: 6px 14px;
       display: flex;
       align-items: center;
       gap: 10px;
+      transition: background-color 0.15s ease;
+    }
+
+    .brand-logo:hover {
+      background: #252830;
     }
 
     .brand-logo img {
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       border-radius: 4px;
       display: block;
     }
@@ -165,7 +174,7 @@
       font-weight: 700;
       text-transform: uppercase;
       color: #0b0b0b;
-      padding: 2px 6px;
+      padding: 1px 5px;
       letter-spacing: 0.05em;
     }
 
@@ -173,6 +182,7 @@
       display: flex;
       align-items: center;
       height: 100%;
+      border-right: 1px solid var(--border-light);
     }
 
     .nav-item {
@@ -180,7 +190,7 @@
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      padding: 0 14px;
+      padding: 0 16px;
       height: 100%;
       display: inline-flex;
       align-items: center;
@@ -209,6 +219,7 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      transition: background-color 0.15s ease;
     }
 
     .theme-toggle-btn:hover {
@@ -235,12 +246,13 @@
       opacity: 0.9;
     }
 
-    /* ---------------- HERO SECTION ---------------- */
-    .hero-section {
-      padding: 64px 0 48px;
-      border-bottom: 1px solid var(--border-light);
+    /* ---------------- HERO CARD (FIXED CROPPING) ---------------- */
+    .hero-card {
       background: var(--bg-surface);
-      margin-bottom: 36px;
+      border: 1px solid var(--border-light);
+      padding: 48px 42px;
+      margin: 32px 0 36px;
+      position: relative;
     }
 
     .meta-lead {
@@ -253,6 +265,7 @@
       text-transform: uppercase;
       letter-spacing: 0.08em;
       margin-bottom: 24px;
+      flex-wrap: wrap;
     }
 
     .meta-tag {
@@ -265,26 +278,26 @@
 
     .hero-title {
       font-family: var(--serif);
-      font-size: clamp(2.4rem, 4.8vw, 4.2rem);
+      font-size: clamp(2rem, 3.8vw, 3.4rem);
       font-weight: 900;
-      line-height: 1.12;
-      letter-spacing: -0.03em;
-      margin-bottom: 28px;
+      line-height: 1.18;
+      letter-spacing: -0.025em;
+      margin-bottom: 26px;
       color: var(--text-primary);
-      max-width: 980px;
+      max-width: 880px;
     }
 
     .hero-grid {
       display: grid;
-      grid-template-columns: 1.6fr 1fr;
-      gap: 36px;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 40px;
       align-items: flex-start;
-      margin-top: 28px;
+      margin-top: 24px;
     }
 
     .hero-manifesto {
-      font-size: 1.18rem;
-      line-height: 1.65;
+      font-size: 1.12rem;
+      line-height: 1.68;
       color: var(--text-secondary);
     }
 
@@ -316,7 +329,7 @@
     .spec-row {
       display: flex;
       justify-content: space-between;
-      padding: 6px 0;
+      padding: 7px 0;
       border-bottom: 1px dashed var(--border-light);
       color: var(--text-secondary);
     }
@@ -329,7 +342,7 @@
     .hero-actions {
       display: flex;
       gap: 12px;
-      margin-top: 24px;
+      margin-top: 28px;
       flex-wrap: wrap;
     }
 
@@ -341,28 +354,27 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      padding: 12px 20px;
+      padding: 12px 22px;
       display: inline-flex;
       align-items: center;
       gap: 8px;
       border: 1px solid var(--border-default);
-      transition: background-color 0.15s ease;
+      transition: opacity 0.15s ease;
     }
 
     .action-btn-primary:hover {
-      background: #23252a;
-      color: #fff;
+      opacity: 0.9;
     }
 
     .action-btn-secondary {
-      background: var(--bg-surface);
+      background: var(--bg-panel);
       color: var(--text-primary);
       font-family: var(--mono);
       font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      padding: 12px 20px;
+      padding: 12px 22px;
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -371,24 +383,24 @@
     }
 
     .action-btn-secondary:hover {
-      background: var(--bg-panel);
+      background: #252830;
     }
 
     /* ---------------- WORKBENCH INTERACTIVE CARD ---------------- */
     .section-module {
-      margin-bottom: 48px;
+      margin-bottom: 40px;
     }
 
     .module-header {
       background: var(--bg-surface);
       border: 1px solid var(--border-light);
       border-bottom: 0;
-      padding: 12px 18px;
+      padding: 14px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 12px;
     }
 
     .module-tag {
@@ -424,7 +436,7 @@
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
-      padding: 6px 12px;
+      padding: 6px 14px;
       cursor: pointer;
       color: var(--text-secondary);
       transition: all 0.15s ease;
@@ -447,7 +459,7 @@
     }
 
     .workbench-editor {
-      padding: 24px;
+      padding: 26px;
       font-family: var(--mono);
       font-size: 12.5px;
       line-height: 1.65;
@@ -464,13 +476,13 @@
 
     .code-comment { color: var(--text-tertiary); }
     .code-label { color: var(--type-essay); font-weight: 700; }
-    .code-redact { background: #fee2e2; color: #991b1b; padding: 1px 4px; font-weight: 600; }
-    body.night .code-redact { background: #451a1a; color: #fca5a5; }
-    .code-pass { color: #047857; font-weight: 600; }
-    body.night .code-pass { color: #34d399; }
+    .code-redact { background: rgba(239, 68, 68, 0.2); color: #fca5a5; padding: 1px 5px; font-weight: 600; }
+    body.light .code-redact { background: #fee2e2; color: #991b1b; }
+    .code-pass { color: #34d399; font-weight: 600; }
+    body.light .code-pass { color: #047857; }
 
     .workbench-sidebar {
-      padding: 24px;
+      padding: 26px;
       background: var(--bg-panel);
       display: flex;
       flex-direction: column;
@@ -483,7 +495,7 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       color: var(--text-primary);
       border-bottom: 1px solid var(--border-strong);
       padding-bottom: 6px;
@@ -493,7 +505,7 @@
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
       margin-bottom: 24px;
     }
 
@@ -537,13 +549,13 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 24px;
-      margin-bottom: 48px;
+      margin-bottom: 40px;
     }
 
     .editorial-card {
       background: var(--bg-surface);
       border: 1px solid var(--border-light);
-      padding: 32px;
+      padding: 34px;
     }
 
     .card-meta-strip {
@@ -563,7 +575,7 @@
 
     .editorial-card h3 {
       font-family: var(--serif);
-      font-size: 1.6rem;
+      font-size: 1.55rem;
       font-weight: 700;
       line-height: 1.25;
       margin-bottom: 16px;
@@ -609,12 +621,12 @@
       gap: 1px;
       background: var(--border-light);
       border: 1px solid var(--border-light);
-      margin-bottom: 48px;
+      margin-bottom: 40px;
     }
 
     .pillar-cell {
       background: var(--bg-surface);
-      padding: 28px 22px;
+      padding: 28px 24px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -650,8 +662,8 @@
     .security-table-card {
       background: var(--bg-surface);
       border: 1px solid var(--border-light);
-      padding: 32px;
-      margin-bottom: 48px;
+      padding: 34px;
+      margin-bottom: 40px;
     }
 
     .sec-table {
@@ -697,7 +709,7 @@
     .faq-wrapper {
       background: var(--bg-surface);
       border: 1px solid var(--border-light);
-      margin-bottom: 48px;
+      margin-bottom: 40px;
     }
 
     .faq-row {
@@ -709,7 +721,7 @@
     }
 
     .faq-trigger {
-      padding: 20px 24px;
+      padding: 20px 26px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -719,6 +731,7 @@
       font-weight: 700;
       color: var(--text-primary);
       user-select: none;
+      transition: background-color 0.15s ease;
     }
 
     .faq-trigger:hover {
@@ -726,7 +739,7 @@
     }
 
     .faq-content {
-      padding: 0 24px 20px;
+      padding: 0 26px 22px;
       font-family: var(--sans);
       font-size: 14.5px;
       color: var(--text-secondary);
@@ -799,7 +812,7 @@
       letter-spacing: 0.08em;
       padding: 10px 18px;
       border: 1px solid var(--border-default);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
       display: none;
       z-index: 2000;
     }
@@ -814,8 +827,12 @@
       .topbar-nav .nav-item { display: none; }
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 650px) {
+      .hero-card { padding: 32px 20px; }
+      .hero-title { font-size: 1.85rem; }
       .pillars-grid { grid-template-columns: 1fr; }
+      .editorial-card { padding: 24px 20px; }
+      .security-table-card { padding: 24px 20px; }
     }
   </style>
 </head>
@@ -823,39 +840,38 @@
 
   <!-- TOPBAR -->
   <header class="topbar">
-    <div class="wrap">
-      <div class="topbar-inner">
-        <div class="brand-block">
-          <a href="#" class="brand-logo">
-            <img src="Copak.png" alt="Copak Icon">
-            <span>COPAK</span>
-            <span class="beta-badge">V1.0.0</span>
-          </a>
-        </div>
-        <nav class="topbar-nav">
-          <a href="#workbench" class="nav-item">Workbench</a>
-          <a href="#philosophy" class="nav-item">Philosophy</a>
-          <a href="#security" class="nav-item">Sanitization</a>
-          <a href="#faq" class="nav-item">Inquiries</a>
-          <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
-            <span>[NIGHT MODE]</span>
-          </button>
-          <a href="https://github.com/niteeshy/copak/releases/latest/download/Copak.zip" class="download-nav-btn">
-            Download ⌘D
-          </a>
-        </nav>
+    <div class="topbar-inner">
+      <div class="brand-block">
+        <a href="#" class="brand-logo">
+          <img src="Copak.png" alt="Copak Icon">
+          <span>COPAK</span>
+          <span class="beta-badge">V1.0.0</span>
+        </a>
       </div>
+      <nav class="topbar-nav">
+        <a href="#workbench" class="nav-item">Workbench</a>
+        <a href="#philosophy" class="nav-item">Philosophy</a>
+        <a href="#security" class="nav-item">Sanitization</a>
+        <a href="#faq" class="nav-item">Inquiries</a>
+        <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
+          <span>[LIGHT MODE]</span>
+        </button>
+        <a href="https://github.com/niteeshy/copak/releases/latest/download/Copak.zip" class="download-nav-btn">
+          Download ⌘D
+        </a>
+      </nav>
     </div>
   </header>
 
   <!-- MAIN CONTAINER -->
   <main class="wrap">
 
-    <!-- HERO SECTION -->
-    <section class="hero-section">
+    <!-- HERO CARD (CLEANLY BOXED, NO CROPPING) -->
+    <section class="hero-card">
       <div class="meta-lead">
-        <span class="meta-tag">SYSTEM REPORT</span>
+        <span class="meta-tag">SYSTEM SPEC</span>
         <span>MACOS 14.0+ // UNIVERSAL BINARY</span>
+        <span>• 100% OFFLINE</span>
         <span>• ZERO TELEMETRY</span>
       </div>
 
@@ -906,7 +922,7 @@
           </div>
           <div class="spec-row">
             <span>Telemetry</span>
-            <span class="val" style="color: #047857;">0 Network Calls (Offline)</span>
+            <span class="val" style="color: var(--accent);">0 Network Calls (Offline)</span>
           </div>
         </div>
       </div>
@@ -999,7 +1015,7 @@
         </ul>
       </div>
 
-      <div class="editorial-card" style="border-left: 3px solid var(--button-bg);">
+      <div class="editorial-card" style="border-left: 3px solid var(--border-default);">
         <div class="card-meta-strip">
           <span>THE SYSTEM</span>
           <span>COPAK DETERMINISTIC HANDOFFS</span>
@@ -1066,7 +1082,7 @@
         <span>SECURITY PROTOCOL</span>
         <span>REAL-TIME REDACTION ENGINE</span>
       </div>
-      <h3 style="font-family: var(--serif); font-size: 1.6rem; font-weight: 700; margin-bottom: 8px;">
+      <h3 style="font-family: var(--serif); font-size: 1.55rem; font-weight: 700; margin-bottom: 8px;">
         Zero-Leak Clipboard Guarantee
       </h3>
       <p style="color: var(--text-secondary); max-width: 720px; font-size: 14.5px;">
@@ -1288,12 +1304,12 @@ Generated by Copak for LLM Session Handover
 
     function toggleTheme() {
       const body = document.body;
-      body.classList.toggle('night');
+      body.classList.toggle('light');
       const btn = document.getElementById('themeBtn');
-      if (body.classList.contains('night')) {
-        btn.querySelector('span').textContent = '[DAY MODE]';
-      } else {
+      if (body.classList.contains('light')) {
         btn.querySelector('span').textContent = '[NIGHT MODE]';
+      } else {
+        btn.querySelector('span').textContent = '[LIGHT MODE]';
       }
     }
   </script>
