@@ -4,79 +4,50 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Copak — Deterministic Handoffs for Coding Agents</title>
-  <meta name="description" content="A native macOS utility for deterministic context handoffs between developers and coding agents. Engineered for Claude Code, Cursor, and web LLMs.">
+  <meta name="description" content="Carry active coding momentum, sanitized diffs, and project instructions into Claude Code, Cursor, and web LLMs without leaking API keys or blowing token budgets.">
   <link rel="icon" type="image/png" href="Copak.png">
   
+  <!-- OpenGraph / Social -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Copak — Deterministic Handoffs for Coding Agents">
+  <meta property="og:description" content="Native macOS developer tool to capture, sanitize, and export project context into AI coding agents.">
+  <meta property="og:image" content="Copak.png">
+  <meta name="twitter:card" content="summary_large_image">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Martel:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Martel:wght@400;700;900&display=swap" rel="stylesheet">
 
   <style>
     :root {
       /* Typography */
       --sans:  'Gothic A1', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
       --mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-      --serif: 'Martel', Georgia, 'Times New Roman', serif;
+      --serif: 'Martel', Georgia, serif;
 
-      /* Dark Mode Palette by Default */
-      --bg-page:    #0e0f12;
-      --bg-surface: #16171c;
-      --bg-panel:   #1e2026;
+      /* Dark Mode Palette */
+      --bg:             #090a0d;
+      --bg-page:        #090a0d;
+      --card-bg:        #121317;
+      --card-border:    #1f2127;
+      --card-hover:     #282a32;
+      
+      --text-primary:   #f4f5f7;
+      --text-secondary: #9da2ad;
+      --text-muted:     #6b707d;
+      
+      --badge-bg:       #17181e;
+      --badge-border:   #2c2f38;
+      --style-yellow1:  #ffff00;
+      --accent-green:   #4eff7b;
+      --redact:         #ef4444;
 
-      /* Lines */
-      --border-light:   #2a2d36;
-      --border-strong:  #414552;
-      --border-default: #f3f4f6;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --max-width: 1080px;
 
-      /* Text */
-      --text-primary:     #f4f5f7;
-      --text-secondary:   #afb3bd;
-      --text-tertiary:    #757a87;
-      --text-caption:     #9094a0;
-      --text-placeholder: #646875;
-      --text-disabled:    #474a54;
-      --text-inverse:     #0e0f12;
-
-      /* Controls */
-      --button-bg:          #f4f5f7;
-      --button-text:        #0e0f12;
-      --button-tertiary-bg: #262830;
-
-      /* Semantic Accents */
-      --accent:         #4eff7b;   /* UI highlight green */
-      --style-yellow1:  #ffff00;   /* Beta / badge yellow */
-      --style-orange2:  #ff6614;   /* Task / warning accent */
-      --type-essay:     #b646ff;   /* Purple category */
-      --type-talk:      #009bb4;   /* Teal category */
-      --red:            #ff382b;   /* Redaction highlight */
-      --dot:            rgba(255, 255, 255, 0.08);
-
-      --radius: 0px;
-      --max-width: 1140px;
-    }
-
-    body.light {
-      --bg-page:    #E0E0E0;
-      --bg-surface: #ffffff;
-      --bg-panel:   #ececec;
-
-      --border-light:   #d3d3d3;
-      --border-strong:  #a5a5a5;
-      --border-default: #0b0b0b;
-
-      --text-primary:     #0b0b0b;
-      --text-secondary:   #454545;
-      --text-tertiary:    #707070;
-      --text-caption:     #545454;
-      --text-placeholder: #767676;
-      --text-disabled:    #c2c2c2;
-      --text-inverse:     #ffffff;
-
-      --button-bg:          #0b0b0b;
-      --button-text:        #ffffff;
-      --button-tertiary-bg: #f2f2f2;
-
-      --dot: rgba(180, 180, 180, 0.45);
+      --dot: rgba(255, 255, 255, 0.08);
     }
 
     * {
@@ -85,22 +56,21 @@
       padding: 0;
     }
 
+    /* Signature Yellow Selection */
     ::selection {
       background: var(--style-yellow1);
-      color: #0b0b0b;
+      color: #000000;
     }
 
     html, body {
-      margin: 0;
-      background-color: var(--bg-page);
+      background-color: var(--bg);
       background-image: radial-gradient(var(--dot) 1px, transparent 1px);
       background-size: 16px 16px;
       color: var(--text-primary);
       font-family: var(--sans);
-      font-size: 15px;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
-      transition: background-color 0.25s ease, color 0.25s ease;
+      overflow-x: hidden;
     }
 
     a {
@@ -108,294 +78,237 @@
       text-decoration: none;
     }
 
-    .wrap {
-      max-width: var(--max-width);
-      margin: 0 auto;
-      padding: 0 24px;
+    /* Ambient glow */
+    .glow-bg {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 480px;
+      background: radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.04) 0%, rgba(9, 10, 13, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
     }
 
-    /* ---------------- TOPBAR ---------------- */
-    header.topbar {
-      border-bottom: 1px solid var(--border-light);
-      background: var(--bg-surface);
+    /* Navigation */
+    nav {
       position: sticky;
       top: 0;
-      z-index: 1000;
-      width: 100%;
-      transition: background-color 0.25s ease, border-color 0.25s ease;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(9, 10, 13, 0.85);
+      border-bottom: 1px solid var(--card-border);
+      padding: 16px 24px;
     }
 
-    .topbar-inner {
+    .nav-container {
       max-width: var(--max-width);
       margin: 0 auto;
-      padding: 0 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 52px;
     }
 
-    .brand-block {
-      display: flex;
-      align-items: center;
-      height: 100%;
-    }
-
-    .brand-logo {
-      background: var(--bg-panel);
-      color: var(--text-primary);
-      border: 1px solid var(--border-light);
-      font-family: var(--mono);
-      font-size: 12.5px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      padding: 6px 14px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      transition: background-color 0.15s ease;
-    }
-
-    .brand-logo:hover {
-      background: #252830;
-    }
-
-    .brand-logo img {
-      width: 20px;
-      height: 20px;
-      border-radius: 4px;
-      display: block;
-    }
-
-    .beta-badge {
-      background: var(--style-yellow1);
-      font-family: var(--mono);
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: #0b0b0b;
-      padding: 1px 5px;
-      letter-spacing: 0.05em;
-    }
-
-    .topbar-nav {
-      display: flex;
-      align-items: center;
-      height: 100%;
-      border-right: 1px solid var(--border-light);
-    }
-
-    .nav-item {
-      font-family: var(--mono);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding: 0 16px;
-      height: 100%;
-      display: inline-flex;
-      align-items: center;
-      border-left: 1px solid var(--border-light);
-      color: var(--text-secondary);
-      transition: background-color 0.15s ease, color 0.15s ease;
-    }
-
-    .nav-item:hover {
-      background: var(--bg-panel);
-      color: var(--text-primary);
-    }
-
-    .theme-toggle-btn {
-      font-family: var(--mono);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding: 0 14px;
-      height: 100%;
-      background: transparent;
-      border: 0;
-      border-left: 1px solid var(--border-light);
-      cursor: pointer;
-      color: var(--text-primary);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: background-color 0.15s ease;
-    }
-
-    .theme-toggle-btn:hover {
-      background: var(--bg-panel);
-    }
-
-    .download-nav-btn {
-      background: var(--button-bg);
-      color: var(--button-text);
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding: 0 18px;
-      height: 100%;
-      display: inline-flex;
-      align-items: center;
-      border-left: 1px solid var(--border-light);
-      transition: opacity 0.15s ease;
-    }
-
-    .download-nav-btn:hover {
-      opacity: 0.9;
-    }
-
-    /* ---------------- HERO CARD (FIXED CROPPING) ---------------- */
-    .hero-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-light);
-      padding: 48px 42px;
-      margin: 32px 0 36px;
-      position: relative;
-    }
-
-    .meta-lead {
+    .nav-brand {
       display: flex;
       align-items: center;
       gap: 12px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-tertiary);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
-
-    .meta-tag {
-      background: var(--bg-panel);
-      color: var(--text-primary);
-      padding: 3px 8px;
-      border: 1px solid var(--border-light);
-      font-weight: 600;
-    }
-
-    .hero-title {
-      font-family: var(--serif);
-      font-size: clamp(2rem, 3.8vw, 3.4rem);
-      font-weight: 900;
-      line-height: 1.18;
-      letter-spacing: -0.025em;
-      margin-bottom: 26px;
-      color: var(--text-primary);
-      max-width: 880px;
-    }
-
-    .hero-grid {
-      display: grid;
-      grid-template-columns: 1.5fr 1fr;
-      gap: 40px;
-      align-items: flex-start;
-      margin-top: 24px;
-    }
-
-    .hero-manifesto {
-      font-size: 1.12rem;
-      line-height: 1.68;
-      color: var(--text-secondary);
-    }
-
-    .hero-manifesto strong {
-      color: var(--text-primary);
-      font-weight: 600;
-    }
-
-    .hero-spec-card {
-      background: var(--bg-panel);
-      border: 1px solid var(--border-light);
-      padding: 24px;
-      font-family: var(--mono);
-      font-size: 12px;
-    }
-
-    .spec-header {
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding-bottom: 12px;
-      margin-bottom: 14px;
-      border-bottom: 1px solid var(--border-strong);
-      display: flex;
-      justify-content: space-between;
-      color: var(--text-primary);
+      font-size: 1.15rem;
+      letter-spacing: -0.01em;
     }
 
-    .spec-row {
+    .nav-brand img {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: block;
+    }
+
+    .nav-links {
       display: flex;
-      justify-content: space-between;
-      padding: 7px 0;
-      border-bottom: 1px dashed var(--border-light);
+      align-items: center;
+      gap: 28px;
+      font-size: 0.9rem;
       color: var(--text-secondary);
     }
 
-    .spec-row span.val {
+    .nav-links a {
+      transition: color 0.15s ease;
+    }
+
+    .nav-links a:hover {
       color: var(--text-primary);
+    }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--text-primary);
+      color: #090a0d;
       font-weight: 600;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.86rem;
+      transition: opacity 0.2s ease, transform 0.15s ease;
+    }
+
+    .nav-cta:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+
+    /* Container */
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Hero Section (Centered Layout) */
+    .hero {
+      padding: 84px 0 54px;
+      text-align: center;
+    }
+
+    .hero-icon-container {
+      margin-bottom: 24px;
+      display: inline-block;
+      position: relative;
+    }
+
+    .hero-icon {
+      width: 104px;
+      height: 104px;
+      border-radius: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      animation: float 4s ease-in-out infinite;
+      display: block;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: var(--badge-bg);
+      border: 1px solid var(--badge-border);
+      border-radius: 100px;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      margin-bottom: 26px;
+    }
+
+    .hero-badge span.pill {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text-primary);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      font-family: var(--mono);
+    }
+
+    .hero h1 {
+      font-size: clamp(2.3rem, 5.2vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.04em;
+      margin-bottom: 20px;
+      color: #ffffff;
+      max-width: 860px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero p.subtitle {
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      color: var(--text-secondary);
+      max-width: 660px;
+      margin: 0 auto 36px;
+      line-height: 1.6;
     }
 
     .hero-actions {
       display: flex;
-      gap: 12px;
-      margin-top: 28px;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
       flex-wrap: wrap;
+      margin-bottom: 18px;
     }
 
-    .action-btn-primary {
-      background: var(--button-bg);
-      color: var(--button-text);
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding: 12px 22px;
+    .btn-primary {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      border: 1px solid var(--border-default);
-      transition: opacity 0.15s ease;
-    }
-
-    .action-btn-primary:hover {
-      opacity: 0.9;
-    }
-
-    .action-btn-secondary {
-      background: var(--bg-panel);
-      color: var(--text-primary);
-      font-family: var(--mono);
-      font-size: 12px;
+      gap: 10px;
+      background: #ffffff;
+      color: #090a0d;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding: 12px 22px;
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-primary:hover {
+      background: #e5e7eb;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 255, 255, 0.14);
+    }
+
+    .btn-secondary {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      border: 1px solid var(--border-light);
-      transition: background-color 0.15s ease;
+      gap: 10px;
+      background: var(--card-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--card-border);
+      font-weight: 500;
+      padding: 12px 22px;
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
     }
 
-    .action-btn-secondary:hover {
-      background: #252830;
+    .btn-secondary:hover {
+      background: var(--card-hover);
+      border-color: #373a44;
+      transform: translateY(-2px);
     }
 
-    /* ---------------- WORKBENCH INTERACTIVE CARD ---------------- */
-    .section-module {
-      margin-bottom: 40px;
+    .hero-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 10px;
     }
 
-    .module-header {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-light);
-      border-bottom: 0;
+    /* Window Preview Card */
+    .preview-card {
+      margin: 44px auto 70px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+      text-align: left;
+    }
+
+    .preview-header {
       padding: 14px 20px;
+      background: #15161b;
+      border-bottom: 1px solid var(--card-border);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -403,824 +316,713 @@
       gap: 12px;
     }
 
-    .module-tag {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+    .window-controls {
       display: flex;
       align-items: center;
       gap: 8px;
-      color: var(--text-primary);
     }
 
-    .module-tag .dot-badge {
-      width: 8px;
-      height: 8px;
-      background: var(--type-essay);
-      display: inline-block;
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
     }
+    .dot-close { background: #ff5f56; }
+    .dot-min { background: #ffbd2e; }
+    .dot-max { background: #27c93f; }
 
-    .workbench-tabs {
+    .preview-tabs {
       display: flex;
-      gap: 0;
-      border: 1px solid var(--border-light);
+      gap: 4px;
+      background: #0d0e11;
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--card-border);
     }
 
-    .wb-tab {
-      background: var(--bg-panel);
-      border: 0;
-      border-right: 1px solid var(--border-light);
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      padding: 6px 14px;
-      cursor: pointer;
+    .tab-btn {
+      background: transparent;
+      border: none;
       color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 5px;
+      cursor: pointer;
       transition: all 0.15s ease;
     }
 
-    .wb-tab:last-child {
-      border-right: 0;
+    .tab-btn.active {
+      background: #23252d;
+      color: #fff;
     }
 
-    .wb-tab.active {
-      background: var(--button-bg);
-      color: var(--button-text);
-    }
-
-    .workbench-body {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-light);
-      display: grid;
-      grid-template-columns: 1fr 340px;
-    }
-
-    .workbench-editor {
-      padding: 26px;
+    .preview-content {
+      padding: 24px;
+      background: #0b0c0f;
       font-family: var(--mono);
-      font-size: 12.5px;
+      font-size: 0.85rem;
+      color: #d1d5db;
+      max-height: 420px;
+      overflow-y: auto;
       line-height: 1.65;
-      background: var(--bg-surface);
-      color: var(--text-primary);
-      overflow-x: auto;
-      border-right: 1px solid var(--border-light);
     }
 
-    .workbench-editor pre {
+    .preview-content pre {
       white-space: pre-wrap;
       word-break: break-all;
     }
 
-    .code-comment { color: var(--text-tertiary); }
-    .code-label { color: var(--type-essay); font-weight: 700; }
-    .code-redact { background: rgba(239, 68, 68, 0.2); color: #fca5a5; padding: 1px 5px; font-weight: 600; }
-    body.light .code-redact { background: #fee2e2; color: #991b1b; }
-    .code-pass { color: #34d399; font-weight: 600; }
-    body.light .code-pass { color: #047857; }
+    .code-comment { color: #6b7280; }
+    .code-tag { color: #a5b4fc; font-weight: 600; }
+    .code-redact { color: #f87171; background: rgba(239, 68, 68, 0.15); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .code-green { color: #34d399; }
 
-    .workbench-sidebar {
-      padding: 26px;
-      background: var(--bg-panel);
+    .preview-footer {
+      padding: 12px 20px;
+      background: #14151a;
+      border-top: 1px solid var(--card-border);
       display: flex;
-      flex-direction: column;
+      align-items: center;
       justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .copy-packet-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #23252d;
+      color: #fff;
+      border: 1px solid var(--card-border);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .copy-packet-btn:hover {
+      background: #30333d;
+    }
+
+    /* Philosophy / Contrast Section */
+    .philosophy-section {
+      padding: 60px 0;
+      border-top: 1px solid var(--card-border);
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 70px;
+    }
+
+    .section-tag {
       font-family: var(--mono);
-      font-size: 12px;
-    }
-
-    .sidebar-section-title {
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 14px;
-      color: var(--text-primary);
-      border-bottom: 1px solid var(--border-strong);
-      padding-bottom: 6px;
-    }
-
-    .sidebar-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
-    .sidebar-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      line-height: 1.45;
-      color: var(--text-secondary);
-    }
-
-    .sidebar-list li strong {
-      color: var(--text-primary);
-    }
-
-    .copy-packet-action {
-      background: var(--button-bg);
-      color: var(--button-text);
-      border: 1px solid var(--border-default);
-      font-family: var(--mono);
-      font-size: 11px;
+      font-size: 0.78rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      padding: 12px;
-      width: 100%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: opacity 0.15s ease;
+      color: #9ca3af;
+      margin-bottom: 12px;
+      display: inline-block;
     }
 
-    .copy-packet-action:hover {
-      opacity: 0.88;
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+      color: #fff;
     }
 
-    /* ---------------- PHILOSOPHY GRID ---------------- */
-    .editorial-grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
+    .section-subtitle {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      max-width: 620px;
       margin-bottom: 40px;
     }
 
-    .editorial-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-light);
-      padding: 34px;
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
     }
 
-    .card-meta-strip {
+    .comp-card {
+      padding: 28px;
+      border-radius: var(--radius-md);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+    }
+
+    .comp-card.bad {
+      border-color: rgba(239, 68, 68, 0.25);
+    }
+
+    .comp-card.good {
+      border-color: rgba(16, 185, 129, 0.35);
+      background: linear-gradient(180deg, #131418 0%, #101114 100%);
+    }
+
+    .comp-badge {
+      display: inline-block;
       font-family: var(--mono);
-      font-size: 10px;
+      font-size: 0.72rem;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-tertiary);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      border-bottom: 1px solid var(--border-light);
-      padding-bottom: 10px;
-    }
-
-    .editorial-card h3 {
-      font-family: var(--serif);
-      font-size: 1.55rem;
-      font-weight: 700;
-      line-height: 1.25;
+      padding: 3px 8px;
+      border-radius: 4px;
       margin-bottom: 16px;
-      color: var(--text-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
-    .editorial-card p {
-      color: var(--text-secondary);
-      font-size: 14.5px;
-      line-height: 1.65;
-      margin-bottom: 18px;
+    .comp-badge.bad { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+    .comp-badge.good { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+
+    .comp-card h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #fff;
     }
 
-    .editorial-card ul {
+    .comp-card ul {
       list-style: none;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      font-size: 14px;
+      font-size: 0.92rem;
       color: var(--text-secondary);
     }
 
-    .editorial-card li {
+    .comp-card li {
       display: flex;
       align-items: flex-start;
       gap: 10px;
       line-height: 1.5;
     }
 
-    .badge-icon {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 0 4px;
-      background: var(--bg-panel);
-      border: 1px solid var(--border-light);
+    /* Features Grid */
+    .features-section {
+      padding: 20px 0 80px;
     }
 
-    /* ---------------- FOUR PILLARS ---------------- */
-    .pillars-grid {
+    .features-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1px;
-      background: var(--border-light);
-      border: 1px solid var(--border-light);
-      margin-bottom: 40px;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-top: 40px;
     }
 
-    .pillar-cell {
-      background: var(--bg-surface);
-      padding: 28px 24px;
+    .feature-box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 32px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .feature-box:hover {
+      transform: translateY(-3px);
+      border-color: #31343f;
+    }
+
+    .feature-icon {
+      font-size: 1.5rem;
+      margin-bottom: 18px;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #1a1c22;
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--card-border);
     }
 
-    .pillar-num {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--text-tertiary);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 16px;
-      display: block;
-    }
-
-    .pillar-title {
-      font-family: var(--sans);
-      font-size: 16px;
-      font-weight: 700;
+    .feature-box h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
       margin-bottom: 10px;
-      color: var(--text-primary);
-      letter-spacing: -0.01em;
+      color: #fff;
     }
 
-    .pillar-desc {
-      font-size: 13.5px;
+    .feature-box p {
+      font-size: 0.92rem;
       color: var(--text-secondary);
       line-height: 1.6;
     }
 
-    /* ---------------- SECURITY TABLE ---------------- */
-    .security-table-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-light);
-      padding: 34px;
-      margin-bottom: 40px;
+    /* Secret Filter Callout */
+    .security-callout {
+      background: linear-gradient(180deg, #131418 0%, #0d0e11 100%);
+      border: 1px solid #282a32;
+      border-radius: var(--radius-md);
+      padding: 40px;
+      margin: 40px 0 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
     }
 
-    .sec-table {
-      width: 100%;
-      border-collapse: collapse;
+    .sec-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .sec-shield {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: #1a1c22;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      border: 1px solid #333640;
+    }
+
+    .redaction-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .redact-pill {
       font-family: var(--mono);
-      font-size: 12px;
-      margin-top: 20px;
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: #1a1c22;
+      color: #d1d5db;
+      border: 1px solid #2d303a;
     }
 
-    .sec-table th {
-      text-align: left;
-      padding: 10px 14px;
-      background: var(--bg-panel);
-      border-bottom: 1px solid var(--border-strong);
-      color: var(--text-primary);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+    /* FAQ */
+    .faq-section {
+      padding: 40px 0 80px;
+      border-top: 1px solid var(--card-border);
     }
 
-    .sec-table td {
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border-light);
-      color: var(--text-secondary);
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 800px;
+      margin-top: 36px;
     }
 
-    .sec-table tr:hover td {
-      background: var(--bg-panel);
+    .faq-item {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
     }
 
-    .status-pill {
-      display: inline-block;
-      padding: 2px 8px;
-      background: var(--bg-panel);
-      border: 1px solid var(--border-light);
-      font-weight: 600;
-      color: var(--text-primary);
-      font-size: 11px;
-    }
-
-    /* ---------------- FAQ ---------------- */
-    .faq-wrapper {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-light);
-      margin-bottom: 40px;
-    }
-
-    .faq-row {
-      border-bottom: 1px solid var(--border-light);
-    }
-
-    .faq-row:last-child {
-      border-bottom: 0;
-    }
-
-    .faq-trigger {
-      padding: 20px 26px;
+    .faq-question {
+      padding: 20px 24px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-family: var(--serif);
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 1.02rem;
       user-select: none;
       transition: background-color 0.15s ease;
     }
 
-    .faq-trigger:hover {
-      background: var(--bg-panel);
+    .faq-question:hover {
+      background: #17181e;
     }
 
-    .faq-content {
-      padding: 0 26px 22px;
-      font-family: var(--sans);
-      font-size: 14.5px;
+    .faq-answer {
+      padding: 0 24px 20px;
+      font-size: 0.92rem;
       color: var(--text-secondary);
-      line-height: 1.65;
+      line-height: 1.6;
       display: none;
     }
 
-    .faq-row.open .faq-content {
+    .faq-item.open .faq-answer {
       display: block;
     }
 
-    .faq-sign {
-      font-family: var(--mono);
-      font-size: 14px;
-      color: var(--text-tertiary);
+    .faq-item.open .faq-chevron {
+      transform: rotate(180deg);
     }
 
-    /* ---------------- FOOTER COLOPHON ---------------- */
-    footer.colophon {
-      background: var(--bg-surface);
-      border-top: 1px solid var(--border-light);
-      padding: 48px 0;
-      font-family: var(--mono);
-      font-size: 11.5px;
-      color: var(--text-tertiary);
+    .faq-chevron {
+      transition: transform 0.2s ease;
+      color: var(--text-muted);
+      font-size: 0.8rem;
     }
 
-    .colophon-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr;
-      gap: 36px;
+    /* Bottom CTA Banner */
+    .bottom-cta {
+      text-align: center;
+      padding: 70px 24px;
+      background: radial-gradient(circle at 50% 50%, #15161b 0%, #090a0d 100%);
+      border-top: 1px solid var(--card-border);
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      margin-top: 40px;
     }
 
-    .colophon-col h5 {
-      color: var(--text-primary);
+    .bottom-cta h2 {
+      font-size: 2.2rem;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 14px;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
     }
 
-    .colophon-links {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .colophon-links a {
+    .bottom-cta p {
       color: var(--text-secondary);
-      text-decoration: underline;
-      text-underline-offset: 3px;
+      max-width: 500px;
+      margin: 0 auto 30px;
     }
 
-    .colophon-links a:hover {
-      color: var(--text-primary);
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 30px 24px;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      background: #060709;
     }
 
-    /* Toast */
-    #editorialToast {
+    /* Toast Notification */
+    #toast {
       position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: var(--button-bg);
-      color: var(--button-text);
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      bottom: 24px;
+      right: 24px;
+      background: #1f2127;
+      border: 1px solid #373a44;
+      color: #fff;
       padding: 10px 18px;
-      border: 1px solid var(--border-default);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
       display: none;
-      z-index: 2000;
+      z-index: 100;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
     }
 
-    @media (max-width: 900px) {
-      .hero-grid { grid-template-columns: 1fr; }
-      .workbench-body { grid-template-columns: 1fr; }
-      .workbench-editor { border-right: 0; border-bottom: 1px solid var(--border-light); }
-      .editorial-grid-2 { grid-template-columns: 1fr; }
-      .pillars-grid { grid-template-columns: 1fr 1fr; }
-      .colophon-grid { grid-template-columns: 1fr; }
-      .topbar-nav .nav-item { display: none; }
-    }
-
-    @media (max-width: 650px) {
-      .hero-card { padding: 32px 20px; }
-      .hero-title { font-size: 1.85rem; }
-      .pillars-grid { grid-template-columns: 1fr; }
-      .editorial-card { padding: 24px 20px; }
-      .security-table-card { padding: 24px 20px; }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hero { padding: 60px 0 40px; }
+      .hero h1 { font-size: 2.2rem; }
+      .preview-header { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
 
-  <!-- TOPBAR -->
-  <header class="topbar">
-    <div class="topbar-inner">
-      <div class="brand-block">
-        <a href="#" class="brand-logo">
-          <img src="Copak.png" alt="Copak Icon">
-          <span>COPAK</span>
-          <span class="beta-badge">V1.0.0</span>
-        </a>
+  <div class="glow-bg"></div>
+
+  <!-- Navigation -->
+  <nav>
+    <div class="nav-container">
+      <div class="nav-brand">
+        <img src="Copak.png" alt="Copak Icon">
+        <span>Copak</span>
       </div>
-      <nav class="topbar-nav">
-        <a href="#workbench" class="nav-item">Workbench</a>
-        <a href="#philosophy" class="nav-item">Philosophy</a>
-        <a href="#security" class="nav-item">Sanitization</a>
-        <a href="#faq" class="nav-item">Inquiries</a>
-        <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
-          <span>[LIGHT MODE]</span>
-        </button>
-        <a href="https://github.com/niteeshy/copak/releases/latest/download/Copak.zip" class="download-nav-btn">
-          Download ⌘D
-        </a>
-      </nav>
+      <div class="nav-links">
+        <a href="#how-it-works">How It Works</a>
+        <a href="#features">Features</a>
+        <a href="#security">Security</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/niteeshy/copak" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <a href="https://github.com/niteeshy/copak/releases/latest/download/Copak.zip" class="nav-cta">
+        Download for macOS
+      </a>
     </div>
-  </header>
+  </nav>
 
-  <!-- MAIN CONTAINER -->
-  <main class="wrap">
-
-    <!-- HERO CARD (CLEANLY BOXED, NO CROPPING) -->
-    <section class="hero-card">
-      <div class="meta-lead">
-        <span class="meta-tag">SYSTEM SPEC</span>
-        <span>MACOS 14.0+ // UNIVERSAL BINARY</span>
-        <span>• 100% OFFLINE</span>
-        <span>• ZERO TELEMETRY</span>
+  <!-- Hero Section (Matching Screenshot Structure) -->
+  <section class="hero">
+    <div class="container">
+      
+      <!-- Floating App Icon -->
+      <div class="hero-icon-container">
+        <img src="Copak.png" alt="Copak App Icon" class="hero-icon">
       </div>
 
-      <h1 class="hero-title">Deterministic handoffs between coding agents and developers.</h1>
-
-      <div class="hero-grid">
-        <div class="hero-manifesto">
-          <p>
-            Copak helps developers carry active coding momentum across agent sessions by combining <strong>developer-maintained intent</strong> with an automated, sanitized project snapshot.
-          </p>
-          <p style="margin-top: 14px; font-size: 1rem; color: var(--text-secondary);">
-            Vector databases and black-box memory systems frequently hallucinate outdated assumptions and blow token ceilings. Copak enforces explicit developer oversight, secret redaction, and strict token ceilings before any context touches your clipboard.
-          </p>
-          <div class="hero-actions">
-            <a href="https://github.com/niteeshy/copak/releases/latest/download/Copak.zip" class="action-btn-primary">
-              Download Copak.zip (macOS)
-            </a>
-            <a href="https://github.com/niteeshy/copak" target="_blank" rel="noopener" class="action-btn-secondary">
-              Source on GitHub ↗
-            </a>
-          </div>
-        </div>
-
-        <div class="hero-spec-card">
-          <div class="spec-header">
-            <span>Runtime Specifications</span>
-            <span>v1.0.0</span>
-          </div>
-          <div class="spec-row">
-            <span>Architecture</span>
-            <span class="val">Universal (arm64 + x86_64)</span>
-          </div>
-          <div class="spec-row">
-            <span>State Store</span>
-            <span class="val">Atomic JSON (~/.copak/)</span>
-          </div>
-          <div class="spec-row">
-            <span>Target Agents</span>
-            <span class="val">Claude Code • Cursor • Codex</span>
-          </div>
-          <div class="spec-row">
-            <span>Secret Filter</span>
-            <span class="val">Multi-layer Regex + PEM Redactor</span>
-          </div>
-          <div class="spec-row">
-            <span>Token Ceilings</span>
-            <span class="val">1,000 / 3,500 / 10,000 Tokens</span>
-          </div>
-          <div class="spec-row">
-            <span>Telemetry</span>
-            <span class="val" style="color: var(--accent);">0 Network Calls (Offline)</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- WORKBENCH SECTION -->
-    <section class="section-module" id="workbench">
-      <div class="module-header">
-        <div class="module-tag">
-          <span class="dot-badge"></span>
-          <span>[SPEC-01 // CONTEXT PACKET EXPORT ENGINE]</span>
-        </div>
-        <div class="workbench-tabs">
-          <button class="wb-tab active" onclick="setWbProvider('claude')">Claude Code</button>
-          <button class="wb-tab" onclick="setWbProvider('cursor')">Cursor Rules</button>
-          <button class="wb-tab" onclick="setWbProvider('codex')">Codex</button>
-          <button class="wb-tab" onclick="setWbProvider('markdown')">context.md</button>
+      <!-- Capsule Badge -->
+      <div>
+        <div class="hero-badge">
+          <span class="pill">v1.0.0</span> Native macOS Desktop App • Zero Telemetry
         </div>
       </div>
 
-      <div class="workbench-body">
-        <div class="workbench-editor">
-          <pre id="wbCode"><span class="code-comment"># Context Packet: my-saas-core</span>
+      <!-- Centered Display Title -->
+      <h1>Deterministic handoffs<br>for AI coding agents.</h1>
+
+      <!-- Centered Subtitle -->
+      <p class="subtitle">
+        Carry active session momentum, sanitized diffs, and project instructions into Claude Code, Cursor, and web LLMs—without leaking API keys or blowing token budgets.
+      </p>
+
+      <!-- Centered Actions -->
+      <div class="hero-actions">
+        <a href="https://github.com/niteeshy/copak/releases/latest/download/Copak.zip" class="btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.64-.78 1.08-1.86.96-2.95-1 .04-2.16.66-2.83 1.44-.59.68-1.11 1.77-.97 2.83 1.11.09 2.21-.57 2.84-1.32Z"/>
+          </svg>
+          Download Copak.zip (macOS)
+        </a>
+        <a href="https://github.com/niteeshy/copak" target="_blank" rel="noopener" class="btn-secondary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          View Source on GitHub
+        </a>
+      </div>
+
+      <div class="hero-meta">Requires macOS 14.0+ • Universal Binary (Apple Silicon & Intel) • Free & Open Source</div>
+
+      <!-- Live Interactive Window Preview Card -->
+      <div class="preview-card" id="how-it-works">
+        <div class="preview-header">
+          <div class="window-controls">
+            <span class="dot dot-close"></span>
+            <span class="dot dot-min"></span>
+            <span class="dot dot-max"></span>
+            <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 8px; font-family: var(--mono);">Copak — Handoff Preview (⌘⇧H)</span>
+          </div>
+          <div class="preview-tabs">
+            <button class="tab-btn active" onclick="switchProvider('claude')">Claude Code</button>
+            <button class="tab-btn" onclick="switchProvider('cursor')">Cursor Rules</button>
+            <button class="tab-btn" onclick="switchProvider('codex')">Codex</button>
+            <button class="tab-btn" onclick="switchProvider('generic')">Standard Markdown</button>
+          </div>
+        </div>
+
+        <div class="preview-content">
+          <pre id="codePreview"><span class="code-comment"># Context Packet: my-saas-core</span>
 <span class="code-comment"># Generated: 2026-09-28 | Budget: Standard (~3,500 tokens) | Target: Claude Code</span>
 
-<span class="code-label">## ACTIVE MOMENTUM</span>
-- Goal: Implement authenticated webhook verification endpoint for Stripe.
-- Next Tasks:
+<span class="code-tag">## ACTIVE MOMENTUM</span>
+- <span class="code-green">Goal:</span> Implement authenticated webhook verification endpoint for Stripe.
+- <span class="code-green">Next Tasks:</span>
   1. Add signature replay validation window (max 300s).
   2. Emit structured audit log on signature failure.
-- Decisions:
+- <span class="code-green">Decisions:</span>
   - Rejected storing raw payloads in DB due to PII compliance.
   - Used crypto.subtle for zero-dependency native verification.
 
-<span class="code-label">## SANITISED REPOSITORY STATE</span>
+<span class="code-tag">## SANITISED REPOSITORY STATE</span>
 - Branch: feature/stripe-webhook (HEAD: 8074458)
 - Changed Files: Sources/Webhooks/StripeHandler.swift, .env.example
 
-<span class="code-label">## SECRET FILTERING VERIFICATION</span>
+<span class="code-tag">## SECRET FILTERING VERIFICATION</span>
 - Stripped 1 OpenAI token: <span class="code-redact">[REDACTED_API_KEY]</span>
 - Stripped 1 PEM Private Key: <span class="code-redact">[REDACTED_PRIVATE_KEY]</span>
 - Excluded uncommitted sensitive file: <span class="code-redact">.env.local</span>
 
-<span class="code-label">## PROJECT RULES (AGENTS.md)</span>
+<span class="code-tag">## PROJECT RULES (AGENTS.md)</span>
 - Concurrency: Never use DispatchQueue.global() in Swift 6 mode.
 - Formatting: Follow SwiftFormat strict presets.</pre>
         </div>
 
-        <div class="workbench-sidebar">
-          <div>
-            <div class="sidebar-section-title">Handoff Mechanics</div>
-            <ul class="sidebar-list">
-              <li>
-                <span>[1]</span>
-                <div><strong>Shortcuts:</strong> <code>⌘O</code> to open directory, <code>⌘⇧H</code> to preview packet.</div>
-              </li>
-              <li>
-                <span>[2]</span>
-                <div><strong>Sanitization:</strong> Automated boundary scan redacts PEM keys and tokens before copying.</div>
-              </li>
-              <li>
-                <span>[3]</span>
-                <div><strong>Token Ceiling:</strong> Diff size automatically trims to fit selected envelope target.</div>
-              </li>
-            </ul>
-          </div>
-
-          <button class="copy-packet-action" onclick="copyEditorialPacket()">
-            <span>⌘↵ Copy Packet to Clipboard</span>
+        <div class="preview-footer">
+          <span style="font-family: var(--mono);">Target Token Target: ~3,500 • Clean Secret Guarantee: Verified</span>
+          <button class="copy-packet-btn" onclick="copySimulatedPacket()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Copy Handoff Packet (⌘↵)
           </button>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- PHILOSOPHY CONTRAST SECTION -->
-    <section class="editorial-grid-2" id="philosophy">
-      <div class="editorial-card">
-        <div class="card-meta-strip">
-          <span>THE PROBLEM</span>
-          <span>BLACK-BOX AUTONOMOUS MEMORY</span>
-        </div>
-        <h3>Why AI sessions drift into hallucinated refactors</h3>
-        <p>
-          Relying on ambient vector recall introduces silent rot into development workflows:
-        </p>
-        <ul>
-          <li><span class="badge-icon">✕</span> Recalls obsolete architectural decisions made in previous rejected branches.</li>
-          <li><span class="badge-icon">✕</span> Inadvertently leaks environment variables or connection strings into prompts.</li>
-          <li><span class="badge-icon">✕</span> Unbounded raw file dumps exhaust reasoning budgets and confuse LLM context windows.</li>
-        </ul>
-      </div>
-
-      <div class="editorial-card" style="border-left: 3px solid var(--border-default);">
-        <div class="card-meta-strip">
-          <span>THE SYSTEM</span>
-          <span>COPAK DETERMINISTIC HANDOFFS</span>
-        </div>
-        <h3>Explicit developer intent paired with repository truth</h3>
-        <p>
-          Copak grounds the next agent in your exact present state with surgical precision:
-        </p>
-        <ul>
-          <li><span class="badge-icon" style="background: var(--style-yellow1); color: #0b0b0b;">✓</span> Developer maintains the goal, immediate queue, and rejected approaches.</li>
-          <li><span class="badge-icon" style="background: var(--style-yellow1); color: #0b0b0b;">✓</span> Hard sanitization strips secrets from staged/unstaged diffs on the fly.</li>
-          <li><span class="badge-icon" style="background: var(--style-yellow1); color: #0b0b0b;">✓</span> Enforced token limits (1k / 3.5k / 10k) disclose trimmed sections transparently.</li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- FOUR PILLARS MODULAR GRID -->
-    <section class="section-module">
-      <div class="module-header">
-        <div class="module-tag">
-          <span class="dot-badge" style="background: var(--type-talk);"></span>
-          <span>[SYSTEM CAPABILITIES // FOUR PILLARS]</span>
-        </div>
-      </div>
-
-      <div class="pillars-grid">
-        <div class="pillar-cell">
-          <span class="pillar-num">[01 // MOMENTUM]</span>
-          <div class="pillar-title">Developer Momentum</div>
-          <div class="pillar-desc">
-            Explicit scratchpad of active goals, queued tasks, and rejected approaches. Persists atomically to <code>~/.copak/sessions/</code>.
-          </div>
-        </div>
-
-        <div class="pillar-cell">
-          <span class="pillar-num">[02 // PRIVACY]</span>
-          <div class="pillar-title">Secret Sanitization</div>
-          <div class="pillar-desc">
-            Multi-layer regex and entropy filters strip AWS, OpenAI, GitHub, and Anthropic API keys, PEM blocks, and <code>.env</code> assignments.
-          </div>
-        </div>
-
-        <div class="pillar-cell">
-          <span class="pillar-num">[03 // BUDGET]</span>
-          <div class="pillar-title">Token Ceilings</div>
-          <div class="pillar-desc">
-            Enforced envelopes: Compact (~1k), Standard (~3.5k), or Comprehensive (~10k) with prioritized trims and transparent disclosures.
-          </div>
-        </div>
-
-        <div class="pillar-cell">
-          <span class="pillar-num">[04 // AGENTS]</span>
-          <div class="pillar-title">Rule Ingestion</div>
-          <div class="pillar-desc">
-            Inspects Git status, file trees, and automatically ingests instructions from <code>AGENTS.md</code>, <code>CLAUDE.md</code>, and <code>.cursorrules</code>.
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECRET SANITIZATION TABLE -->
-    <section class="security-table-card" id="security">
-      <div class="card-meta-strip">
-        <span>SECURITY PROTOCOL</span>
-        <span>REAL-TIME REDACTION ENGINE</span>
-      </div>
-      <h3 style="font-family: var(--serif); font-size: 1.55rem; font-weight: 700; margin-bottom: 8px;">
-        Zero-Leak Clipboard Guarantee
-      </h3>
-      <p style="color: var(--text-secondary); max-width: 720px; font-size: 14.5px;">
-        Every git diff, project tree, and freeform developer note passes through an in-memory redaction pipeline before reaching the system clipboard or disk export.
+  <!-- Problem vs Solution -->
+  <section class="philosophy-section">
+    <div class="container">
+      <span class="section-tag">[01 // ARCHITECTURE]</span>
+      <h2 class="section-title">Deterministic Momentum vs. Black-Box Memory</h2>
+      <p class="section-subtitle">
+        Vector databases and "autonomous memory" hallucinate stale code and lose nuance. Copak pairs developer-maintained intent with automated inspection.
       </p>
 
-      <table class="sec-table">
-        <thead>
-          <tr>
-            <th>Secret Pattern</th>
-            <th>Detection Scope</th>
-            <th>Redaction Mask</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>OpenAI API Keys</td>
-            <td><code>sk-proj-[A-Za-z0-9_-]{48,}</code></td>
-            <td><code>[REDACTED_API_KEY]</code></td>
-            <td><span class="status-pill">ACTIVE</span></td>
-          </tr>
-          <tr>
-            <td>GitHub Personal Tokens</td>
-            <td><code>ghp_[A-Za-z0-9]{36}</code></td>
-            <td><code>[REDACTED_API_KEY]</code></td>
-            <td><span class="status-pill">ACTIVE</span></td>
-          </tr>
-          <tr>
-            <td>AWS Access Keys</td>
-            <td><code>AKIA[0-9A-Z]{16}</code></td>
-            <td><code>[REDACTED_API_KEY]</code></td>
-            <td><span class="status-pill">ACTIVE</span></td>
-          </tr>
-          <tr>
-            <td>PEM Private Keys</td>
-            <td><code>-----BEGIN.*PRIVATE KEY-----</code></td>
-            <td><code>[REDACTED_PRIVATE_KEY]</code></td>
-            <td><span class="status-pill">ACTIVE</span></td>
-          </tr>
-          <tr>
-            <td>Environment Assignments</td>
-            <td><code>(KEY|SECRET|TOKEN|PASS)=.*</code></td>
-            <td><code>$1=[REDACTED]</code></td>
-            <td><span class="status-pill">ACTIVE</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-
-    <!-- INQUIRIES / FAQ -->
-    <section class="section-module" id="faq">
-      <div class="module-header">
-        <div class="module-tag">
-          <span class="dot-badge" style="background: var(--style-orange2);"></span>
-          <span>[TECHNICAL INQUIRIES // FAQ]</span>
-        </div>
-      </div>
-
-      <div class="faq-wrapper">
-        <div class="faq-row open">
-          <div class="faq-trigger" onclick="toggleEditorialFaq(this)">
-            <span>How does Copak differ from native Claude Code or Cursor memory?</span>
-            <span class="faq-sign">[-]</span>
-          </div>
-          <div class="faq-content">
-            Agent context windows fill quickly and drift during complex sessions. When opening a fresh session or debugging in a web LLM, you are forced to re-explain the architecture. Copak generates a sanitized, structured snapshot containing your immediate momentum and recent repo diff in one keystroke (<code>⌘⇧H</code> / <code>⌘↵</code>).
-          </div>
-        </div>
-
-        <div class="faq-row">
-          <div class="faq-trigger" onclick="toggleEditorialFaq(this)">
-            <span>Does Copak transmit code to any remote server or cloud account?</span>
-            <span class="faq-sign">[+]</span>
-          </div>
-          <div class="faq-content">
-            No. Copak is 100% offline. It makes zero network calls, contains zero analytics or telemetry SDKs, and stores session state strictly on your local disk in <code>~/.copak/sessions/</code>.
-          </div>
-        </div>
-
-        <div class="faq-row">
-          <div class="faq-trigger" onclick="toggleEditorialFaq(this)">
-            <span>Can Copak be used with non-git project directories?</span>
-            <span class="faq-sign">[+]</span>
-          </div>
-          <div class="faq-content">
-            Yes. Copak automatically detects directories outside Git, analyzing file trees, scanning TODOs, and ingesting rule files while gracefully omitting Git-specific diff sections.
-          </div>
-        </div>
-
-        <div class="faq-row">
-          <div class="faq-trigger" onclick="toggleEditorialFaq(this)">
-            <span>How is Copak packaged and distributed?</span>
-            <span class="faq-sign">[+]</span>
-          </div>
-          <div class="faq-content">
-            Copak is distributed as a universal macOS application (supporting Apple Silicon and Intel Macs). Simply download <code>Copak.zip</code> from GitHub Releases and drag <code>Copak.app</code> into your <code>/Applications</code> directory.
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- COLOPHON / FOOTER -->
-  <footer class="colophon">
-    <div class="wrap">
-      <div class="colophon-grid">
-        <div class="colophon-col">
-          <h5>Copak Architecture</h5>
-          <p style="line-height: 1.6; max-width: 440px;">
-            A native macOS developer tool for deterministic agent handoffs. Designed for engineers using Claude Code, Cursor, Codex, and local LLMs. Released as open-source software under the MIT License.
-          </p>
-        </div>
-        <div class="colophon-col">
-          <h5>Releases & Source</h5>
-          <ul class="colophon-links">
-            <li><a href="https://github.com/niteeshy/copak/releases/latest/download/Copak.zip">Download Copak.zip</a></li>
-            <li><a href="https://github.com/niteeshy/copak">GitHub Repository</a></li>
-            <li><a href="https://github.com/niteeshy/copak/blob/main/LICENSE">MIT License</a></li>
+      <div class="comparison-grid">
+        <div class="comp-card bad">
+          <span class="comp-badge bad">Autonomous Memory Tools</span>
+          <h3>Fuzzy & Unpredictable</h3>
+          <ul>
+            <li>❌ Retrieves outdated code snippets from 2 weeks ago</li>
+            <li>❌ Leaks API keys and .env variables into prompt context</li>
+            <li>❌ Unbounded token dumps dilute model attention and reasoning</li>
+            <li>❌ Invisible background daemons running cloud syncs & telemetry</li>
           </ul>
         </div>
-        <div class="colophon-col">
-          <h5>Themes</h5>
-          <ul class="colophon-links">
-            <li><a href="index.html">Terminal Dark Theme</a></li>
-            <li><a href="#" onclick="toggleTheme(); return false;">Toggle Day / Night Mode</a></li>
+
+        <div class="comp-card good">
+          <span class="comp-badge good">Copak Handoffs</span>
+          <h3>Explicit & Deterministic</h3>
+          <ul>
+            <li>✓ Developer maintains goals, decisions, and active task queues</li>
+            <li>✓ Multi-layer sanitization strips secrets before touching clipboard</li>
+            <li>✓ Enforced token ceilings (1k, 3.5k, 10k) with trim disclosures</li>
+            <li>✓ 100% offline, native Swift, local atomic JSON storage</li>
           </ul>
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section class="features-section" id="features">
+    <div class="container">
+      <span class="section-tag">[02 // CAPABILITIES]</span>
+      <h2 class="section-title">Engineered for real developer workflows</h2>
+
+      <div class="features-grid">
+        <div class="feature-box">
+          <div class="feature-icon">⚡️</div>
+          <h3>Session Momentum</h3>
+          <p>Document immediate goals, completed tasks, queued implementation steps, and architectural decisions. Persists atomically to <code>~/.copak/sessions/</code>.</p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon">🛡️</div>
+          <h3>Multi-Layer Sanitization</h3>
+          <p>Hard boundary redactions. AWS, OpenAI, GitHub, and Anthropic API keys, PEM private keys, and <code>.env</code> assignments are redacted on the fly.</p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon">📐</div>
+          <h3>Token Budget Ceilings</h3>
+          <p>Strict token limits: Compact (~1k), Standard (~3.5k), or Comprehensive (~10k). Intelligently prunes diffs while keeping your goals front-and-center.</p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon">📂</div>
+          <h3>Git & Non-Git Projects</h3>
+          <p>Works effortlessly with Git repos or plain directories. Automatically ingests rules from <code>AGENTS.md</code>, <code>CLAUDE.md</code>, and <code>.cursorrules</code>.</p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon">🎯</div>
+          <h3>Targeted Provider Export</h3>
+          <p>Generates tailored Markdown formats optimized for Claude Code CLI, Cursor Rules, Codex, or standard <code>context.md</code> files.</p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon">🔒</div>
+          <h3>Zero Network Telemetry</h3>
+          <p>Built with native Swift & AppKit. No telemetry, no third-party analytic trackers, and zero background network calls. What stays on your Mac stays on your Mac.</p>
+        </div>
+      </div>
+
+      <!-- Security Callout -->
+      <div class="security-callout" id="security">
+        <div class="sec-header">
+          <div class="sec-shield">🔐</div>
+          <div>
+            <h3 style="font-size: 1.25rem; font-weight: 700;">Zero-Leak Secret Redaction</h3>
+            <p style="color: var(--text-secondary); font-size: 0.92rem; margin-top: 4px;">
+              Copak scans every diff, file tree, and note before copying. Secrets never touch the clipboard.
+            </p>
+          </div>
+        </div>
+        <div class="redaction-pills">
+          <span class="redact-pill">sk-proj-****************</span>
+          <span class="redact-pill">ghp_********************</span>
+          <span class="redact-pill">AKIA********************</span>
+          <span class="redact-pill">-----BEGIN PRIVATE KEY-----</span>
+          <span class="redact-pill">postgres://user:pass@host</span>
+          <span class="redact-pill">DATABASE_URL=***********</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <span class="section-tag">[03 // INQUIRIES]</span>
+      <h2 class="section-title">Frequently Asked Questions</h2>
+
+      <div class="faq-list">
+        <div class="faq-item open">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            How is Copak different from Cursor or Claude Code memory?
+            <span class="faq-chevron">▼</span>
+          </div>
+          <div class="faq-answer">
+            Agents operate with context windows that fill up quickly and drift over long sessions. When starting a new session or debugging in a separate web LLM, you have to re-explain the architecture. Copak generates a sanitized, compact snapshot of your immediate momentum and repo diff so the new agent is up to speed in seconds.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            Does Copak upload my code or send data anywhere?
+            <span class="faq-chevron">▼</span>
+          </div>
+          <div class="faq-answer">
+            No. Copak is 100% offline. It has zero network calls, zero analytics, and zero cloud accounts. Everything is parsed locally on your Mac and copied directly to your clipboard.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            Does it work on projects that are not Git repositories?
+            <span class="faq-chevron">▼</span>
+          </div>
+          <div class="faq-answer">
+            Yes! Copak gracefully detects non-git folders, extracts directory file trees, analyzes TODOs, and ingests instruction files while omitting Git-specific diff sections.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            How do I install it on macOS?
+            <span class="faq-chevron">▼</span>
+          </div>
+          <div class="faq-answer">
+            Simply download <code>Copak.zip</code> from GitHub Releases, extract it, and move <code>Copak.app</code> into your <code>/Applications</code> folder. If Gatekeeper prompts on first launch, right-click and choose "Open" or run <code>xattr -cr /Applications/Copak.app</code>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bottom CTA -->
+  <section class="bottom-cta">
+    <div class="container">
+      <h2>Eliminate context drift today.</h2>
+      <p>Download the native macOS app and carry your active coding momentum into any agent session.</p>
+      <div class="hero-actions">
+        <a href="https://github.com/niteeshy/copak/releases/latest/download/Copak.zip" class="btn-primary">
+          Download Copak (macOS)
+        </a>
+        <a href="https://github.com/niteeshy/copak" target="_blank" rel="noopener" class="btn-secondary">
+          Star on GitHub ⭐
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>Copak is open source software released under the MIT License.</p>
+      <p style="margin-top: 6px; font-size: 0.8rem;">Designed for developers using Claude Code, Cursor, Codex, and OpenAI models.</p>
+    </div>
   </footer>
 
-  <!-- TOAST -->
-  <div id="editorialToast">✓ Copied Packet to Clipboard</div>
+  <!-- Toast -->
+  <div id="toast">✓ Copied Handoff Packet to clipboard!</div>
 
   <script>
-    const wbTemplates = {
+    const providerTemplates = {
       claude: `# Context Packet: my-saas-core
 # Generated: 2026-09-28 | Budget: Standard (~3,500 tokens) | Target: Claude Code
 
@@ -1245,7 +1047,6 @@
 ## PROJECT RULES (AGENTS.md)
 - Concurrency: Never use DispatchQueue.global() in Swift 6 mode.
 - Formatting: Follow SwiftFormat strict presets.`,
-
       cursor: `/* @context: Copak Handoff Packet -> Cursor Rules */
 ## IMMEDIATE OBJECTIVE
 Implement authenticated webhook verification endpoint for Stripe.
@@ -1261,14 +1062,12 @@ Implement authenticated webhook verification endpoint for Stripe.
 ## REPOSITORY CONTEXT
 - Branch: feature/stripe-webhook
 - Staged: Sources/Webhooks/StripeHandler.swift`,
-
       codex: `// Copak Session Context
 // Task: Implement authenticated webhook verification endpoint for Stripe.
 // Next: Add signature replay validation window (max 300s).
 // Architecture constraints: Native crypto.subtle, zero external dependencies.
 // Repository diff summary: 2 files changed, secrets redacted.`,
-
-      markdown: `# Project Context: my-saas-core
+      generic: `# Project Context: my-saas-core
 Generated by Copak for LLM Session Handover
 
 ### 1. Goal & Decisions
@@ -1280,37 +1079,24 @@ Generated by Copak for LLM Session Handover
 - Secrets checked & cleaned: 100% verified.`
     };
 
-    function setWbProvider(provider) {
-      document.querySelectorAll('.wb-tab').forEach(b => b.classList.remove('active'));
+    function switchProvider(provider) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       event.target.classList.add('active');
-      document.getElementById('wbCode').textContent = wbTemplates[provider];
+      document.getElementById('codePreview').textContent = providerTemplates[provider];
     }
 
-    function toggleEditorialFaq(trigger) {
-      const row = trigger.parentElement;
-      row.classList.toggle('open');
-      const sign = trigger.querySelector('.faq-sign');
-      sign.textContent = row.classList.contains('open') ? '[-]' : '[+]';
+    function toggleFaq(elem) {
+      const parent = elem.parentElement;
+      parent.classList.toggle('open');
     }
 
-    function copyEditorialPacket() {
-      const text = document.getElementById('wbCode').textContent;
+    function copySimulatedPacket() {
+      const text = document.getElementById('codePreview').textContent;
       navigator.clipboard.writeText(text).then(() => {
-        const toast = document.getElementById('editorialToast');
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 2200);
+        const toast = document.getElementById('toast');
+        toast.style.display = 'flex';
+        setTimeout(() => { toast.style.display = 'none'; }, 2400);
       });
-    }
-
-    function toggleTheme() {
-      const body = document.body;
-      body.classList.toggle('light');
-      const btn = document.getElementById('themeBtn');
-      if (body.classList.contains('light')) {
-        btn.querySelector('span').textContent = '[NIGHT MODE]';
-      } else {
-        btn.querySelector('span').textContent = '[LIGHT MODE]';
-      }
     }
   </script>
 </body>
