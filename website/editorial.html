@@ -483,15 +483,6 @@
       border: 1px solid var(--border-light);
     }
 
-    .comp-card.bad {
-      border-left: 3px solid rgba(239, 68, 68, 0.7);
-    }
-
-    .comp-card.good {
-      border-left: 3px solid var(--button-bg);
-      background: var(--bg-surface);
-    }
-
     .comp-badge {
       display: inline-block;
       font-family: var(--mono);
@@ -624,8 +615,18 @@
 
     /* FAQ */
     .faq-section {
-      padding: 40px 0 70px;
+      padding: 50px 0 70px;
       border-top: 1px solid var(--border-light);
+      text-align: center;
+    }
+
+    .faq-section .section-tag {
+      display: inline-block;
+      margin: 0 auto 12px;
+    }
+
+    .faq-section .section-title {
+      text-align: center;
     }
 
     .faq-list {
@@ -635,7 +636,8 @@
       background: var(--border-light);
       border: 1px solid var(--border-light);
       max-width: 860px;
-      margin-top: 36px;
+      margin: 36px auto 0;
+      text-align: left;
     }
 
     .faq-item {
