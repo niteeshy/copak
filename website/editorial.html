@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Copak — Deterministic Handoffs for Coding Agents</title>
-  <meta name="description" content="Carry active coding momentum, sanitized diffs, and project instructions into Claude Code, Cursor, and web LLMs without leaking API keys or blowing token budgets.">
+  <meta name="description" content="A native macOS utility for deterministic context handoffs between developers and coding agents. Engineered for Claude Code, Cursor, and web LLMs.">
   <link rel="icon" type="image/png" href="Copak.png">
   
   <!-- OpenGraph / Social -->
@@ -16,38 +16,47 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Martel:wght@400;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Martel:wght@400;600;700;900&display=swap" rel="stylesheet">
 
   <style>
     :root {
-      /* Typography */
+      /* Typography from niteeshyadav.com */
       --sans:  'Gothic A1', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
       --mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
       --serif: 'Martel', Georgia, serif;
 
-      /* Dark Mode Palette */
-      --bg:             #090a0d;
-      --bg-page:        #090a0d;
-      --card-bg:        #121317;
-      --card-border:    #1f2127;
-      --card-hover:     #282a32;
-      
-      --text-primary:   #f4f5f7;
-      --text-secondary: #9da2ad;
-      --text-muted:     #6b707d;
-      
-      --badge-bg:       #17181e;
-      --badge-border:   #2c2f38;
-      --style-yellow1:  #ffff00;
-      --accent-green:   #4eff7b;
-      --redact:         #ef4444;
+      /* Canonical Night Mode Palette from niteeshyadav.com */
+      --bg-page:        #151618;
+      --bg-surface:     #1e1f23;
+      --bg-panel:       #25272c;
 
-      --radius-sm: 8px;
-      --radius-md: 14px;
-      --radius-lg: 20px;
+      --border-light:   #34373e;
+      --border-strong:  #50545e;
+      --border-default: #ececec;
+
+      --text-primary:     #f2f3f5;
+      --text-secondary:   #c2c5cc;
+      --text-tertiary:    #9397a1;
+      --text-caption:     #a0a4ae;
+      --text-placeholder: #767a84;
+      --text-disabled:    #555861;
+      --text-inverse:     #0b0b0b;
+
+      --button-bg:          #ececec;
+      --button-text:        #0b0b0b;
+      --button-tertiary-bg: #2b2e35;
+
+      /* Semantic Content Accents */
+      --accent:         #4eff7b;   /* Green UI affordance */
+      --style-yellow1:  #ffff00;   /* Beta yellow */
+      --style-orange2:  #ff5700;   /* Orange accent */
+      --type-essay:     #a728ff;   /* Purple category */
+      --type-talk:      #00728a;   /* Teal category */
+      --red:            #ff2313;   /* Redaction highlight */
+      --dot:            rgba(65, 68, 77, 0.45);
+
+      --radius: 0px; /* Sharp editorial modernist aesthetic */
       --max-width: 1080px;
-
-      --dot: rgba(255, 255, 255, 0.08);
     }
 
     * {
@@ -56,18 +65,19 @@
       padding: 0;
     }
 
-    /* Signature Yellow Selection */
+    /* Signature Yellow Selection from niteeshyadav.com */
     ::selection {
       background: var(--style-yellow1);
-      color: #000000;
+      color: #0b0b0b;
     }
 
     html, body {
-      background-color: var(--bg);
+      background-color: var(--bg-page);
       background-image: radial-gradient(var(--dot) 1px, transparent 1px);
       background-size: 16px 16px;
       color: var(--text-primary);
       font-family: var(--sans);
+      font-size: 15px;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
@@ -78,29 +88,16 @@
       text-decoration: none;
     }
 
-    /* Ambient glow */
-    .glow-bg {
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 900px;
-      height: 480px;
-      background: radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.04) 0%, rgba(9, 10, 13, 0) 70%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
     /* Navigation */
-    nav {
+    nav.topbar {
       position: sticky;
       top: 0;
       z-index: 100;
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      background: rgba(9, 10, 13, 0.85);
-      border-bottom: 1px solid var(--card-border);
-      padding: 16px 24px;
+      background: rgba(21, 22, 24, 0.88);
+      border-bottom: 1px solid var(--border-light);
+      padding: 12px 24px;
     }
 
     .nav-container {
@@ -114,24 +111,40 @@
     .nav-brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      font-family: var(--mono);
       font-weight: 700;
-      font-size: 1.15rem;
-      letter-spacing: -0.01em;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
     .nav-brand img {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
       display: block;
+    }
+
+    .beta-badge {
+      background: var(--style-yellow1);
+      font-family: var(--mono);
+      font-size: 8.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #0b0b0b;
+      padding: 1px 5px;
+      letter-spacing: 0.05em;
     }
 
     .nav-links {
       display: flex;
       align-items: center;
       gap: 28px;
-      font-size: 0.9rem;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
       color: var(--text-secondary);
     }
 
@@ -147,18 +160,20 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: var(--text-primary);
-      color: #090a0d;
-      font-weight: 600;
-      padding: 8px 16px;
-      border-radius: var(--radius-sm);
-      font-size: 0.86rem;
-      transition: opacity 0.2s ease, transform 0.15s ease;
+      background: var(--button-bg);
+      color: var(--button-text);
+      font-family: var(--mono);
+      font-weight: 700;
+      padding: 7px 16px;
+      border: 1px solid var(--border-default);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      transition: opacity 0.15s ease;
     }
 
     .nav-cta:hover {
-      opacity: 0.92;
-      transform: translateY(-1px);
+      opacity: 0.9;
     }
 
     /* Container */
@@ -167,17 +182,16 @@
       margin: 0 auto;
       padding: 0 24px;
       position: relative;
-      z-index: 1;
     }
 
-    /* Hero Section (Centered Layout) */
+    /* Hero Section (Centered Layout matching screenshot) */
     .hero {
-      padding: 84px 0 54px;
+      padding: 80px 0 50px;
       text-align: center;
     }
 
     .hero-icon-container {
-      margin-bottom: 24px;
+      margin-bottom: 22px;
       display: inline-block;
       position: relative;
     }
@@ -185,65 +199,69 @@
     .hero-icon {
       width: 104px;
       height: 104px;
-      border-radius: 24px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      border-radius: 22px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--border-light);
       animation: float 4s ease-in-out infinite;
       display: block;
     }
 
     @keyframes float {
       0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
+      50% { transform: translateY(-5px); }
     }
 
     .hero-badge {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 14px;
-      background: var(--badge-bg);
-      border: 1px solid var(--badge-border);
-      border-radius: 100px;
-      font-size: 0.82rem;
+      padding: 5px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
       color: var(--text-secondary);
-      margin-bottom: 26px;
+      margin-bottom: 24px;
     }
 
     .hero-badge span.pill {
-      background: rgba(255, 255, 255, 0.12);
-      color: var(--text-primary);
-      padding: 2px 8px;
-      border-radius: 12px;
+      background: var(--style-yellow1);
+      color: #0b0b0b;
+      padding: 1px 6px;
       font-weight: 700;
-      font-size: 0.75rem;
-      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.04em;
     }
 
+    /* Headline in Martel Editorial Serif */
     .hero h1 {
-      font-size: clamp(2.3rem, 5.2vw, 3.8rem);
-      font-weight: 800;
-      line-height: 1.15;
-      letter-spacing: -0.04em;
-      margin-bottom: 20px;
-      color: #ffffff;
+      font-family: var(--serif);
+      font-size: clamp(2.3rem, 5vw, 3.8rem);
+      font-weight: 900;
+      line-height: 1.14;
+      letter-spacing: -0.025em;
+      margin-bottom: 22px;
+      color: var(--text-primary);
       max-width: 860px;
       margin-left: auto;
       margin-right: auto;
     }
 
     .hero p.subtitle {
-      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      font-family: var(--sans);
+      font-size: clamp(1.05rem, 2vw, 1.22rem);
       color: var(--text-secondary);
       max-width: 660px;
       margin: 0 auto 36px;
-      line-height: 1.6;
+      line-height: 1.65;
     }
 
     .hero-actions {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 16px;
+      gap: 14px;
       flex-wrap: wrap;
       margin-bottom: 18px;
     }
@@ -251,64 +269,65 @@
     .btn-primary {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      background: #ffffff;
-      color: #090a0d;
-      font-weight: 600;
+      gap: 8px;
+      background: var(--button-bg);
+      color: var(--button-text);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
       padding: 12px 24px;
-      border-radius: var(--radius-sm);
-      font-size: 0.95rem;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 14px rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-default);
+      transition: opacity 0.15s ease;
     }
 
     .btn-primary:hover {
-      background: #e5e7eb;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(255, 255, 255, 0.14);
+      opacity: 0.88;
     }
 
     .btn-secondary {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      background: var(--card-bg);
+      gap: 8px;
+      background: var(--bg-surface);
       color: var(--text-primary);
-      border: 1px solid var(--card-border);
-      font-weight: 500;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
       padding: 12px 22px;
-      border-radius: var(--radius-sm);
-      font-size: 0.95rem;
-      transition: all 0.2s ease;
+      border: 1px solid var(--border-light);
+      transition: background-color 0.15s ease;
     }
 
     .btn-secondary:hover {
-      background: var(--card-hover);
-      border-color: #373a44;
-      transform: translateY(-2px);
+      background: var(--bg-panel);
     }
 
     .hero-meta {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-top: 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-tertiary);
+      margin-top: 12px;
     }
 
-    /* Window Preview Card */
+    /* Window Preview Card matching screenshot */
     .preview-card {
       margin: 44px auto 70px;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
       text-align: left;
     }
 
     .preview-header {
-      padding: 14px 20px;
-      background: #15161b;
-      border-bottom: 1px solid var(--card-border);
+      padding: 12px 18px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-light);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -333,40 +352,44 @@
 
     .preview-tabs {
       display: flex;
-      gap: 4px;
-      background: #0d0e11;
-      padding: 4px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--card-border);
+      gap: 0;
+      border: 1px solid var(--border-light);
     }
 
     .tab-btn {
-      background: transparent;
-      border: none;
+      background: var(--bg-surface);
+      border: 0;
+      border-right: 1px solid var(--border-light);
       color: var(--text-secondary);
-      font-family: inherit;
-      font-size: 0.78rem;
-      font-weight: 500;
-      padding: 5px 12px;
-      border-radius: 5px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 6px 14px;
       cursor: pointer;
       transition: all 0.15s ease;
     }
 
+    .tab-btn:last-child {
+      border-right: 0;
+    }
+
     .tab-btn.active {
-      background: #23252d;
-      color: #fff;
+      background: var(--button-bg);
+      color: var(--button-text);
     }
 
     .preview-content {
       padding: 24px;
-      background: #0b0c0f;
+      background: #111215;
       font-family: var(--mono);
-      font-size: 0.85rem;
-      color: #d1d5db;
+      font-size: 12.5px;
+      color: var(--text-primary);
       max-height: 420px;
       overflow-y: auto;
       line-height: 1.65;
+      border-bottom: 1px solid var(--border-light);
     }
 
     .preview-content pre {
@@ -374,65 +397,71 @@
       word-break: break-all;
     }
 
-    .code-comment { color: #6b7280; }
-    .code-tag { color: #a5b4fc; font-weight: 600; }
-    .code-redact { color: #f87171; background: rgba(239, 68, 68, 0.15); padding: 1px 5px; border-radius: 3px; font-weight: 500; }
-    .code-green { color: #34d399; }
+    .code-comment { color: var(--text-tertiary); }
+    .code-tag { color: var(--type-essay); font-weight: 700; }
+    .code-redact { color: #fca5a5; background: rgba(239, 68, 68, 0.2); padding: 1px 5px; font-weight: 600; }
+    .code-green { color: #34d399; font-weight: 600; }
 
     .preview-footer {
-      padding: 12px 20px;
-      background: #14151a;
-      border-top: 1px solid var(--card-border);
+      padding: 12px 18px;
+      background: var(--bg-panel);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 0.8rem;
-      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
     }
 
     .copy-packet-btn {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #23252d;
-      color: #fff;
-      border: 1px solid var(--card-border);
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.78rem;
+      background: var(--button-bg);
+      color: var(--button-text);
+      border: 1px solid var(--border-default);
+      font-family: var(--mono);
+      font-weight: 700;
+      padding: 6px 14px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
       cursor: pointer;
-      transition: background 0.15s ease;
+      transition: opacity 0.15s ease;
     }
 
     .copy-packet-btn:hover {
-      background: #30333d;
+      opacity: 0.88;
     }
 
     /* Philosophy / Contrast Section */
     .philosophy-section {
       padding: 60px 0;
-      border-top: 1px solid var(--card-border);
-      border-bottom: 1px solid var(--card-border);
-      margin-bottom: 70px;
+      border-top: 1px solid var(--border-light);
+      border-bottom: 1px solid var(--border-light);
+      margin-bottom: 60px;
     }
 
     .section-tag {
       font-family: var(--mono);
-      font-size: 0.78rem;
+      font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: #9ca3af;
+      color: var(--text-tertiary);
       margin-bottom: 12px;
       display: inline-block;
     }
 
     .section-title {
+      font-family: var(--serif);
       font-size: clamp(1.8rem, 3.5vw, 2.5rem);
       font-weight: 700;
-      letter-spacing: -0.03em;
+      letter-spacing: -0.02em;
       margin-bottom: 16px;
-      color: #fff;
+      color: var(--text-primary);
     }
 
     .section-subtitle {
@@ -445,45 +474,45 @@
     .comparison-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 20px;
+      gap: 24px;
     }
 
     .comp-card {
-      padding: 28px;
-      border-radius: var(--radius-md);
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
+      padding: 30px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
     }
 
     .comp-card.bad {
-      border-color: rgba(239, 68, 68, 0.25);
+      border-left: 3px solid rgba(239, 68, 68, 0.7);
     }
 
     .comp-card.good {
-      border-color: rgba(16, 185, 129, 0.35);
-      background: linear-gradient(180deg, #131418 0%, #101114 100%);
+      border-left: 3px solid var(--button-bg);
+      background: var(--bg-surface);
     }
 
     .comp-badge {
       display: inline-block;
       font-family: var(--mono);
-      font-size: 0.72rem;
+      font-size: 10px;
       font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 4px;
+      padding: 2px 7px;
       margin-bottom: 16px;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
+      border: 1px solid var(--border-light);
     }
 
-    .comp-badge.bad { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-    .comp-badge.good { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .comp-badge.bad { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+    .comp-badge.good { background: var(--style-yellow1); color: #0b0b0b; }
 
     .comp-card h3 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: #fff;
+      font-family: var(--serif);
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: var(--text-primary);
     }
 
     .comp-card ul {
@@ -491,7 +520,7 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      font-size: 0.92rem;
+      font-size: 14px;
       color: var(--text-secondary);
     }
 
@@ -502,67 +531,62 @@
       line-height: 1.5;
     }
 
-    /* Features Grid */
+    /* Four Pillars Modular Grid from niteeshyadav.com */
     .features-section {
-      padding: 20px 0 80px;
+      padding: 20px 0 70px;
     }
 
-    .features-grid {
+    .pillars-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 24px;
-      margin-top: 40px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border-light);
+      border: 1px solid var(--border-light);
+      margin-top: 36px;
     }
 
-    .feature-box {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius-md);
-      padding: 32px;
-      transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-
-    .feature-box:hover {
-      transform: translateY(-3px);
-      border-color: #31343f;
-    }
-
-    .feature-icon {
-      font-size: 1.5rem;
-      margin-bottom: 18px;
-      width: 44px;
-      height: 44px;
-      border-radius: 10px;
-      background: #1a1c22;
+    .pillar-cell {
+      background: var(--bg-surface);
+      padding: 28px 22px;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid var(--card-border);
+      flex-direction: column;
+      justify-content: space-between;
     }
 
-    .feature-box h3 {
-      font-size: 1.15rem;
-      font-weight: 600;
+    .pillar-num {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 14px;
+      display: block;
+    }
+
+    .pillar-title {
+      font-family: var(--sans);
+      font-size: 16px;
+      font-weight: 700;
       margin-bottom: 10px;
-      color: #fff;
+      color: var(--text-primary);
     }
 
-    .feature-box p {
-      font-size: 0.92rem;
+    .pillar-desc {
+      font-size: 13.5px;
       color: var(--text-secondary);
       line-height: 1.6;
     }
 
     /* Secret Filter Callout */
     .security-callout {
-      background: linear-gradient(180deg, #131418 0%, #0d0e11 100%);
-      border: 1px solid #282a32;
-      border-radius: var(--radius-md);
-      padding: 40px;
-      margin: 40px 0 80px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      padding: 34px;
+      margin: 40px 0 70px;
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 20px;
     }
 
     .sec-header {
@@ -572,53 +596,50 @@
     }
 
     .sec-shield {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      background: #1a1c22;
+      width: 44px;
+      height: 44px;
+      background: var(--bg-panel);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.4rem;
-      border: 1px solid #333640;
+      font-size: 1.3rem;
+      border: 1px solid var(--border-light);
     }
 
     .redaction-pills {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 12px;
+      margin-top: 10px;
     }
 
     .redact-pill {
       font-family: var(--mono);
-      font-size: 0.78rem;
+      font-size: 11.5px;
       padding: 4px 10px;
-      border-radius: 6px;
-      background: #1a1c22;
-      color: #d1d5db;
-      border: 1px solid #2d303a;
+      background: var(--bg-panel);
+      color: var(--text-primary);
+      border: 1px solid var(--border-light);
     }
 
     /* FAQ */
     .faq-section {
-      padding: 40px 0 80px;
-      border-top: 1px solid var(--card-border);
+      padding: 40px 0 70px;
+      border-top: 1px solid var(--border-light);
     }
 
     .faq-list {
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      max-width: 800px;
+      gap: 1px;
+      background: var(--border-light);
+      border: 1px solid var(--border-light);
+      max-width: 860px;
       margin-top: 36px;
     }
 
     .faq-item {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius-sm);
-      overflow: hidden;
+      background: var(--bg-surface);
     }
 
     .faq-question {
@@ -627,21 +648,23 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-weight: 600;
-      font-size: 1.02rem;
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 1.12rem;
       user-select: none;
       transition: background-color 0.15s ease;
     }
 
     .faq-question:hover {
-      background: #17181e;
+      background: var(--bg-panel);
     }
 
     .faq-answer {
-      padding: 0 24px 20px;
-      font-size: 0.92rem;
+      padding: 0 24px 22px;
+      font-family: var(--sans);
+      font-size: 14.5px;
       color: var(--text-secondary);
-      line-height: 1.6;
+      line-height: 1.65;
       display: none;
     }
 
@@ -649,85 +672,120 @@
       display: block;
     }
 
-    .faq-item.open .faq-chevron {
-      transform: rotate(180deg);
-    }
-
     .faq-chevron {
-      transition: transform 0.2s ease;
-      color: var(--text-muted);
-      font-size: 0.8rem;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-tertiary);
     }
 
     /* Bottom CTA Banner */
     .bottom-cta {
       text-align: center;
       padding: 70px 24px;
-      background: radial-gradient(circle at 50% 50%, #15161b 0%, #090a0d 100%);
-      border-top: 1px solid var(--card-border);
-      border-radius: var(--radius-md) var(--radius-md) 0 0;
-      margin-top: 40px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      margin: 40px 0 70px;
     }
 
     .bottom-cta h2 {
+      font-family: var(--serif);
       font-size: 2.2rem;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      margin-bottom: 16px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
     }
 
     .bottom-cta p {
       color: var(--text-secondary);
       max-width: 500px;
-      margin: 0 auto 30px;
+      margin: 0 auto 28px;
+      font-size: 1.05rem;
     }
 
-    footer {
-      border-top: 1px solid var(--card-border);
-      padding: 30px 24px;
-      text-align: center;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      background: #060709;
+    /* Colophon Footer */
+    footer.colophon {
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-light);
+      padding: 48px 0;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--text-tertiary);
     }
 
-    /* Toast Notification */
+    .colophon-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 36px;
+    }
+
+    .colophon-col h5 {
+      color: var(--text-primary);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+    }
+
+    .colophon-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .colophon-links a {
+      color: var(--text-secondary);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .colophon-links a:hover {
+      color: var(--text-primary);
+    }
+
+    /* Toast */
     #toast {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: #1f2127;
-      border: 1px solid #373a44;
-      color: #fff;
+      bottom: 20px;
+      right: 20px;
+      background: var(--button-bg);
+      color: var(--button-text);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
       padding: 10px 18px;
-      border-radius: var(--radius-sm);
-      font-size: 0.85rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border-default);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
       display: none;
-      z-index: 100;
+      z-index: 200;
       align-items: center;
       gap: 8px;
-      font-family: var(--mono);
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 860px) {
       .nav-links { display: none; }
-      .hero { padding: 60px 0 40px; }
-      .hero h1 { font-size: 2.2rem; }
+      .pillars-grid { grid-template-columns: 1fr 1fr; }
+      .colophon-grid { grid-template-columns: 1fr; }
       .preview-header { flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (max-width: 600px) {
+      .pillars-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 2.1rem; }
     }
   </style>
 </head>
 <body>
 
-  <div class="glow-bg"></div>
-
-  <!-- Navigation -->
-  <nav>
+  <!-- Navigation matching screenshot structure -->
+  <nav class="topbar">
     <div class="nav-container">
       <div class="nav-brand">
         <img src="Copak.png" alt="Copak Icon">
         <span>Copak</span>
+        <span class="beta-badge">V1.0.0</span>
       </div>
       <div class="nav-links">
         <a href="#how-it-works">How It Works</a>
@@ -742,7 +800,7 @@
     </div>
   </nav>
 
-  <!-- Hero Section (Matching Screenshot Structure) -->
+  <!-- Hero Section matching screenshot structure with niteeshyadav.com dark design -->
   <section class="hero">
     <div class="container">
       
@@ -754,28 +812,29 @@
       <!-- Capsule Badge -->
       <div>
         <div class="hero-badge">
-          <span class="pill">v1.0.0</span> Native macOS Desktop App • Zero Telemetry
+          <span class="pill">v1.0.0</span>
+          <span>Native macOS Desktop App • Zero Telemetry</span>
         </div>
       </div>
 
-      <!-- Centered Display Title -->
+      <!-- Centered Display Title in Martel Editorial Serif -->
       <h1>Deterministic handoffs<br>for AI coding agents.</h1>
 
-      <!-- Centered Subtitle -->
+      <!-- Centered Subtitle in Gothic A1 -->
       <p class="subtitle">
         Carry active session momentum, sanitized diffs, and project instructions into Claude Code, Cursor, and web LLMs—without leaking API keys or blowing token budgets.
       </p>
 
-      <!-- Centered Actions -->
+      <!-- Centered Action Buttons -->
       <div class="hero-actions">
         <a href="https://github.com/niteeshy/copak/releases/latest/download/Copak.zip" class="btn-primary">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.64-.78 1.08-1.86.96-2.95-1 .04-2.16.66-2.83 1.44-.59.68-1.11 1.77-.97 2.83 1.11.09 2.21-.57 2.84-1.32Z"/>
           </svg>
           Download Copak.zip (macOS)
         </a>
         <a href="https://github.com/niteeshy/copak" target="_blank" rel="noopener" class="btn-secondary">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
           </svg>
           View Source on GitHub
@@ -784,14 +843,14 @@
 
       <div class="hero-meta">Requires macOS 14.0+ • Universal Binary (Apple Silicon & Intel) • Free & Open Source</div>
 
-      <!-- Live Interactive Window Preview Card -->
+      <!-- Centered Interactive Window Preview Card -->
       <div class="preview-card" id="how-it-works">
         <div class="preview-header">
           <div class="window-controls">
             <span class="dot dot-close"></span>
             <span class="dot dot-min"></span>
             <span class="dot dot-max"></span>
-            <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 8px; font-family: var(--mono);">Copak — Handoff Preview (⌘⇧H)</span>
+            <span style="font-size: 0.8rem; color: var(--text-tertiary); margin-left: 8px; font-family: var(--mono);">Copak — Handoff Preview (⌘⇧H)</span>
           </div>
           <div class="preview-tabs">
             <button class="tab-btn active" onclick="switchProvider('claude')">Claude Code</button>
@@ -829,7 +888,7 @@
         </div>
 
         <div class="preview-footer">
-          <span style="font-family: var(--mono);">Target Token Target: ~3,500 • Clean Secret Guarantee: Verified</span>
+          <span>Target Token Target: ~3,500 • Clean Secret Guarantee: Verified</span>
           <button class="copy-packet-btn" onclick="copySimulatedPacket()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -877,56 +936,52 @@
     </div>
   </section>
 
-  <!-- Features Grid -->
+  <!-- Four Pillars Grid from niteeshyadav.com -->
   <section class="features-section" id="features">
     <div class="container">
       <span class="section-tag">[02 // CAPABILITIES]</span>
       <h2 class="section-title">Engineered for real developer workflows</h2>
 
-      <div class="features-grid">
-        <div class="feature-box">
-          <div class="feature-icon">⚡️</div>
-          <h3>Session Momentum</h3>
-          <p>Document immediate goals, completed tasks, queued implementation steps, and architectural decisions. Persists atomically to <code>~/.copak/sessions/</code>.</p>
+      <div class="pillars-grid">
+        <div class="pillar-cell">
+          <span class="pillar-num">[01 // MOMENTUM]</span>
+          <div class="pillar-title">Developer Momentum</div>
+          <div class="pillar-desc">
+            Explicit scratchpad of active goals, queued tasks, and rejected approaches. Persists atomically to <code>~/.copak/sessions/</code>.
+          </div>
         </div>
 
-        <div class="feature-box">
-          <div class="feature-icon">🛡️</div>
-          <h3>Multi-Layer Sanitization</h3>
-          <p>Hard boundary redactions. AWS, OpenAI, GitHub, and Anthropic API keys, PEM private keys, and <code>.env</code> assignments are redacted on the fly.</p>
+        <div class="pillar-cell">
+          <span class="pillar-num">[02 // PRIVACY]</span>
+          <div class="pillar-title">Secret Sanitization</div>
+          <div class="pillar-desc">
+            Multi-layer regex and entropy filters strip AWS, OpenAI, GitHub, and Anthropic API keys, PEM blocks, and <code>.env</code> assignments.
+          </div>
         </div>
 
-        <div class="feature-box">
-          <div class="feature-icon">📐</div>
-          <h3>Token Budget Ceilings</h3>
-          <p>Strict token limits: Compact (~1k), Standard (~3.5k), or Comprehensive (~10k). Intelligently prunes diffs while keeping your goals front-and-center.</p>
+        <div class="pillar-cell">
+          <span class="pillar-num">[03 // BUDGET]</span>
+          <div class="pillar-title">Token Ceilings</div>
+          <div class="pillar-desc">
+            Enforced envelopes: Compact (~1k), Standard (~3.5k), or Comprehensive (~10k) with prioritized trims and transparent disclosures.
+          </div>
         </div>
 
-        <div class="feature-box">
-          <div class="feature-icon">📂</div>
-          <h3>Git & Non-Git Projects</h3>
-          <p>Works effortlessly with Git repos or plain directories. Automatically ingests rules from <code>AGENTS.md</code>, <code>CLAUDE.md</code>, and <code>.cursorrules</code>.</p>
-        </div>
-
-        <div class="feature-box">
-          <div class="feature-icon">🎯</div>
-          <h3>Targeted Provider Export</h3>
-          <p>Generates tailored Markdown formats optimized for Claude Code CLI, Cursor Rules, Codex, or standard <code>context.md</code> files.</p>
-        </div>
-
-        <div class="feature-box">
-          <div class="feature-icon">🔒</div>
-          <h3>Zero Network Telemetry</h3>
-          <p>Built with native Swift & AppKit. No telemetry, no third-party analytic trackers, and zero background network calls. What stays on your Mac stays on your Mac.</p>
+        <div class="pillar-cell">
+          <span class="pillar-num">[04 // AGENTS]</span>
+          <div class="pillar-title">Rule Ingestion</div>
+          <div class="pillar-desc">
+            Inspects Git status, file trees, and automatically ingests instructions from <code>AGENTS.md</code>, <code>CLAUDE.md</code>, and <code>.cursorrules</code>.
+          </div>
         </div>
       </div>
 
-      <!-- Security Callout -->
+      <!-- Secret Filter Callout -->
       <div class="security-callout" id="security">
         <div class="sec-header">
           <div class="sec-shield">🔐</div>
           <div>
-            <h3 style="font-size: 1.25rem; font-weight: 700;">Zero-Leak Secret Redaction</h3>
+            <h3 style="font-family: var(--serif); font-size: 1.25rem; font-weight: 700;">Zero-Leak Secret Redaction</h3>
             <p style="color: var(--text-secondary); font-size: 0.92rem; margin-top: 4px;">
               Copak scans every diff, file tree, and note before copying. Secrets never touch the clipboard.
             </p>
@@ -954,7 +1009,7 @@
         <div class="faq-item open">
           <div class="faq-question" onclick="toggleFaq(this)">
             How is Copak different from Cursor or Claude Code memory?
-            <span class="faq-chevron">▼</span>
+            <span class="faq-chevron">[-]</span>
           </div>
           <div class="faq-answer">
             Agents operate with context windows that fill up quickly and drift over long sessions. When starting a new session or debugging in a separate web LLM, you have to re-explain the architecture. Copak generates a sanitized, compact snapshot of your immediate momentum and repo diff so the new agent is up to speed in seconds.
@@ -964,7 +1019,7 @@
         <div class="faq-item">
           <div class="faq-question" onclick="toggleFaq(this)">
             Does Copak upload my code or send data anywhere?
-            <span class="faq-chevron">▼</span>
+            <span class="faq-chevron">[+]</span>
           </div>
           <div class="faq-answer">
             No. Copak is 100% offline. It has zero network calls, zero analytics, and zero cloud accounts. Everything is parsed locally on your Mac and copied directly to your clipboard.
@@ -974,7 +1029,7 @@
         <div class="faq-item">
           <div class="faq-question" onclick="toggleFaq(this)">
             Does it work on projects that are not Git repositories?
-            <span class="faq-chevron">▼</span>
+            <span class="faq-chevron">[+]</span>
           </div>
           <div class="faq-answer">
             Yes! Copak gracefully detects non-git folders, extracts directory file trees, analyzes TODOs, and ingests instruction files while omitting Git-specific diff sections.
@@ -984,7 +1039,7 @@
         <div class="faq-item">
           <div class="faq-question" onclick="toggleFaq(this)">
             How do I install it on macOS?
-            <span class="faq-chevron">▼</span>
+            <span class="faq-chevron">[+]</span>
           </div>
           <div class="faq-answer">
             Simply download <code>Copak.zip</code> from GitHub Releases, extract it, and move <code>Copak.app</code> into your <code>/Applications</code> folder. If Gatekeeper prompts on first launch, right-click and choose "Open" or run <code>xattr -cr /Applications/Copak.app</code>.
@@ -995,8 +1050,8 @@
   </section>
 
   <!-- Bottom CTA -->
-  <section class="bottom-cta">
-    <div class="container">
+  <section class="container">
+    <div class="bottom-cta">
       <h2>Eliminate context drift today.</h2>
       <p>Download the native macOS app and carry your active coding momentum into any agent session.</p>
       <div class="hero-actions">
@@ -1010,11 +1065,32 @@
     </div>
   </section>
 
-  <!-- Footer -->
-  <footer>
+  <!-- Colophon Footer -->
+  <footer class="colophon">
     <div class="container">
-      <p>Copak is open source software released under the MIT License.</p>
-      <p style="margin-top: 6px; font-size: 0.8rem;">Designed for developers using Claude Code, Cursor, Codex, and OpenAI models.</p>
+      <div class="colophon-grid">
+        <div class="colophon-col">
+          <h5>Copak Architecture</h5>
+          <p style="line-height: 1.6; max-width: 440px;">
+            A native macOS developer tool for deterministic agent handoffs. Designed for engineers using Claude Code, Cursor, Codex, and local LLMs. Released as open-source software under the MIT License.
+          </p>
+        </div>
+        <div class="colophon-col">
+          <h5>Releases & Source</h5>
+          <ul class="colophon-links">
+            <li><a href="https://github.com/niteeshy/copak/releases/latest/download/Copak.zip">Download Copak.zip</a></li>
+            <li><a href="https://github.com/niteeshy/copak">GitHub Repository</a></li>
+            <li><a href="https://github.com/niteeshy/copak/blob/main/LICENSE">MIT License</a></li>
+          </ul>
+        </div>
+        <div class="colophon-col">
+          <h5>Colophon</h5>
+          <ul class="colophon-links">
+            <li>Type: Martel + Gothic A1 + JetBrains Mono</li>
+            <li>Palette: niteeshyadav.com night tokens</li>
+          </ul>
+        </div>
+      </div>
     </div>
   </footer>
 
@@ -1088,6 +1164,10 @@ Generated by Copak for LLM Session Handover
     function toggleFaq(elem) {
       const parent = elem.parentElement;
       parent.classList.toggle('open');
+      const chevron = elem.querySelector('.faq-chevron');
+      if (chevron) {
+        chevron.textContent = parent.classList.contains('open') ? '[-]' : '[+]';
+      }
     }
 
     function copySimulatedPacket() {
